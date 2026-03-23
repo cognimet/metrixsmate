@@ -1530,44 +1530,89 @@ class AssessmentController extends Controller
 
     private function getDetailedCareerPaths(string $code, array $top3): array
     {
+        // Comprehensive career mapping covering all 20 unique RIASEC type-set combinations.
+        // The lookup is permutation-aware, so any ordering of the same 3 letters finds the match.
         $careerMapping = [
+            // R, I, A
             'RIA' => ['Software Engineer', 'Research Scientist', 'Product Developer', 'Technical Analyst'],
+            // R, I, S
+            'RIS' => ['Biomedical Technician', 'Environmental Scientist', 'Occupational Health Specialist', 'Veterinary Technologist'],
+            // R, I, E
+            'RIE' => ['Engineering Manager', 'Technical Project Manager', 'Operations Engineer', 'Manufacturing Supervisor'],
+            // R, I, C
             'RIC' => ['Quality Assurance Specialist', 'Technical Inspector', 'Laboratory Technician', 'Process Engineer'],
-            'RAI' => ['Industrial Designer', 'Architect', 'Creative Engineer', 'UX Designer'],
-            'RAS' => ['Occupational Therapist', 'Athletic Trainer', 'Environmental Educator'],
-            'RAE' => ['Construction Manager', 'Landscape Contractor', 'Technical Sales'],
-            'IAR' => ['Data Scientist', 'Research Engineer', 'Technical Researcher'],
-            'IAS' => ['Clinical Researcher', 'Educational Researcher', 'Psychologist'],
-            'IAE' => ['Management Consultant', 'Technology Analyst', 'Strategic Planner'],
-            'IAC' => ['Financial Analyst', 'Market Researcher', 'Statistician'],
-            'ARI' => ['Multimedia Developer', 'Technical Writer', 'Creative Technologist'],
-            'AIS' => ['Art Therapist', 'Museum Educator', 'Creative Director'],
-            'AIE' => ['Marketing Creative', 'Brand Manager', 'Entertainment Producer'],
-            'AIC' => ['Graphic Designer', 'Web Designer', 'Content Creator'],
-            'SIA' => ['Counselor', 'Social Worker', 'Educational Coordinator'],
-            'SIE' => ['Training Manager', 'Human Resources', 'Organizational Development'],
-            'SIC' => ['School Administrator', 'Healthcare Administrator', 'Program Coordinator'],
-            'SAR' => ['Recreation Director', 'Physical Therapist', 'Fitness Instructor'],
-            'SAI' => ['Teacher', 'Curriculum Developer', 'Educational Researcher'],
-            'SAE' => ['Sales Trainer', 'Event Coordinator', 'Public Relations'],
-            'EIA' => ['Business Analyst', 'Strategy Consultant', 'Innovation Manager'],
-            'EIS' => ['Training Director', 'Organizational Development', 'Change Manager'],
-            'EIC' => ['Operations Manager', 'Business Operations', 'Process Improvement'],
-            'EAR' => ['Entrepreneur', 'Product Manager', 'Business Development'],
-            'EAS' => ['Sales Manager', 'Account Executive', 'Customer Success'],
-            'EAI' => ['Marketing Director', 'Brand Strategist', 'Creative Executive'],
-            'CIR' => ['Systems Analyst', 'Database Administrator', 'IT Coordinator'],
-            'CIA' => ['Desktop Publisher', 'Digital Content Manager', 'Information Designer'],
-            'CIS' => ['HR Specialist', 'Training Coordinator', 'Administrative Manager'],
-            'CIE' => ['Business Analyst', 'Operations Coordinator', 'Project Administrator'],
+            // R, A, S
+            'RAS' => ['Occupational Therapist', 'Athletic Trainer', 'Environmental Educator', 'Landscape Architect'],
+            // R, A, E
+            'RAE' => ['Construction Manager', 'Landscape Contractor', 'Technical Sales', 'Interior Designer'],
+            // R, A, C
+            'RAC' => ['Drafter', 'Cartographer', 'Surveyor', 'Architectural Technician'],
+            // R, S, E
+            'RSE' => ['Fitness Center Manager', 'Emergency Services Coordinator', 'Safety Inspector', 'Military Officer'],
+            // R, S, C
+            'RSC' => ['Medical Lab Technician', 'Pharmacy Technician', 'Dental Hygienist', 'Dietetic Technician'],
+            // R, E, C
+            'REC' => ['Logistics Manager', 'Supply Chain Specialist', 'Facilities Manager', 'Transportation Coordinator'],
+            // I, A, S
+            'IAS' => ['Clinical Researcher', 'Educational Researcher', 'Psychologist', 'Anthropologist'],
+            // I, A, E
+            'IAE' => ['Management Consultant', 'Technology Analyst', 'Strategic Planner', 'Innovation Director'],
+            // I, A, C
+            'IAC' => ['Financial Analyst', 'Market Researcher', 'Statistician', 'Actuary'],
+            // I, S, E
+            'ISE' => ['Healthcare Manager', 'Research Program Director', 'Clinical Trial Manager', 'Public Health Administrator'],
+            // I, S, C
+            'ISC' => ['Medical Records Specialist', 'Epidemiologist', 'Health Informatics Specialist', 'Lab Manager'],
+            // I, E, C
+            'IEC' => ['Data Analyst', 'Business Intelligence Analyst', 'Quantitative Analyst', 'Risk Manager'],
+            // A, S, E
+            'ASE' => ['Communications Director', 'Advertising Manager', 'Media Producer', 'Public Relations Manager'],
+            // A, S, C
+            'ASC' => ['Library Curator', 'Archivist', 'Museum Curator', 'Heritage Conservation Officer'],
+            // A, E, C
+            'AEC' => ['Art Director', 'Advertising Executive', 'Fashion Merchandiser', 'Publishing Manager'],
+            // S, E, C
+            'SEC' => ['Office Manager', 'Executive Assistant', 'Community Services Manager', 'Non-profit Administrator'],
         ];
 
-        // Try full code first, then partial matches
-        $careers = $careerMapping[$code] ?? 
-                  $careerMapping[substr($code, 0, 2)] ?? 
-                  ['Explore careers combining ' . implode(', ', array_column($top3, 'domain'))];
+        // Permutation-aware lookup: try all orderings of the 3·letter code
+        $careers = null;
+        if (isset($careerMapping[$code])) {
+            $careers = $careerMapping[$code];
+        } else {
+            $letters = str_split($code);
+            $permutations = $this->getPermutations($letters);
+            foreach ($permutations as $perm) {
+                $key = implode('', $perm);
+                if (isset($careerMapping[$key])) {
+                    $careers = $careerMapping[$key];
+                    break;
+                }
+            }
+        }
+
+        if (!$careers) {
+            $careers = ['Explore careers combining ' . implode(', ', array_column($top3, 'domain'))];
+        }
 
         return array_slice($careers, 0, 4); // Limit to top 4 suggestions
+    }
+
+    private function getPermutations(array $items): array
+    {
+        if (count($items) <= 1) {
+            return [$items];
+        }
+
+        $result = [];
+        foreach ($items as $key => $item) {
+            $remaining = $items;
+            unset($remaining[$key]);
+            foreach ($this->getPermutations(array_values($remaining)) as $perm) {
+                $result[] = array_merge([$item], $perm);
+            }
+        }
+        return $result;
     }
 
     private function getSkillDevelopmentRecommendations(array $domainResults): array

@@ -398,58 +398,164 @@ class ResultController extends Controller
     private function generateCareerRecommendations($hollandCode)
     {
         $careerMappings = [
+            // R, I, A
             'RIA' => [
                 'primary' => ['Software Engineer', 'Research Scientist', 'Product Developer'],
                 'secondary' => ['Technical Analyst', 'Systems Designer', 'Innovation Consultant'],
                 'work_environments' => ['Tech companies', 'Research labs', 'Innovation hubs']
             ],
+            // R, I, S
+            'RIS' => [
+                'primary' => ['Biomedical Technician', 'Environmental Scientist', 'Occupational Health Specialist'],
+                'secondary' => ['Veterinary Technologist', 'Safety Engineer', 'Ergonomics Consultant'],
+                'work_environments' => ['Healthcare facilities', 'Environmental agencies', 'Safety organizations']
+            ],
+            // R, I, E
+            'RIE' => [
+                'primary' => ['Engineering Manager', 'Technical Project Manager', 'Operations Engineer'],
+                'secondary' => ['Manufacturing Supervisor', 'Production Director', 'Technical Sales Engineer'],
+                'work_environments' => ['Engineering firms', 'Manufacturing plants', 'Technical startups']
+            ],
+            // R, I, C
             'RIC' => [
                 'primary' => ['Quality Assurance Specialist', 'Technical Inspector', 'Laboratory Technician'],
                 'secondary' => ['Process Engineer', 'Technical Writer', 'Compliance Officer'],
                 'work_environments' => ['Manufacturing', 'Testing facilities', 'Regulatory bodies']
             ],
-            'RAI' => [
-                'primary' => ['Industrial Designer', 'Architect', 'Creative Engineer'],
-                'secondary' => ['UX Designer', 'Product Designer', 'Creative Director'],
-                'work_environments' => ['Design studios', 'Architecture firms', 'Creative agencies']
+            // R, A, S
+            'RAS' => [
+                'primary' => ['Occupational Therapist', 'Athletic Trainer', 'Environmental Educator'],
+                'secondary' => ['Landscape Architect', 'Art Teacher', 'Recreation Therapist'],
+                'work_environments' => ['Therapy centers', 'Educational institutions', 'Community organizations']
             ],
-            'IRA' => [
-                'primary' => ['Data Scientist', 'Research Engineer', 'Technical Researcher'],
-                'secondary' => ['Business Analyst', 'Market Researcher', 'Policy Analyst'],
-                'work_environments' => ['Universities', 'Think tanks', 'Consulting firms']
+            // R, A, E
+            'RAE' => [
+                'primary' => ['Construction Manager', 'Landscape Contractor', 'Technical Sales'],
+                'secondary' => ['Interior Designer', 'Set Designer', 'Exhibition Designer'],
+                'work_environments' => ['Construction sites', 'Design firms', 'Event companies']
             ],
-            'IAR' => [
-                'primary' => ['Systems Analyst', 'Technical Writer', 'Research Developer'],
-                'secondary' => ['Documentation Specialist', 'Training Developer', 'Content Strategist'],
-                'work_environments' => ['Technology companies', 'Educational institutions', 'Publishing']
+            // R, A, C
+            'RAC' => [
+                'primary' => ['Drafter', 'Cartographer', 'Surveyor'],
+                'secondary' => ['Architectural Technician', 'CAD Specialist', 'Technical Illustrator'],
+                'work_environments' => ['Architecture firms', 'Engineering offices', 'Government agencies']
             ],
-            'ARI' => [
-                'primary' => ['Multimedia Developer', 'Creative Technologist', 'Design Engineer'],
-                'secondary' => ['Game Developer', 'Digital Artist', 'Interactive Designer'],
-                'work_environments' => ['Media companies', 'Gaming studios', 'Digital agencies']
+            // R, S, E
+            'RSE' => [
+                'primary' => ['Fitness Center Manager', 'Emergency Services Coordinator', 'Safety Inspector'],
+                'secondary' => ['Military Officer', 'Sports Coach', 'Park Ranger'],
+                'work_environments' => ['Sports facilities', 'Emergency services', 'Outdoor recreation']
             ],
-            'SIA' => [
-                'primary' => ['Counselor', 'Social Worker', 'Educational Coordinator'],
-                'secondary' => ['Community Manager', 'Non-profit Director', 'Training Specialist'],
-                'work_environments' => ['Healthcare', 'Education', 'Non-profit organizations']
+            // R, S, C
+            'RSC' => [
+                'primary' => ['Medical Lab Technician', 'Pharmacy Technician', 'Dental Hygienist'],
+                'secondary' => ['Dietetic Technician', 'Radiologic Technologist', 'Physical Therapy Assistant'],
+                'work_environments' => ['Hospitals', 'Clinics', 'Pharmacies']
             ],
-            'EIA' => [
-                'primary' => ['Business Analyst', 'Strategy Consultant', 'Innovation Manager'],
-                'secondary' => ['Project Manager', 'Operations Director', 'Change Manager'],
-                'work_environments' => ['Consulting firms', 'Corporate offices', 'Startups']
+            // R, E, C
+            'REC' => [
+                'primary' => ['Logistics Manager', 'Supply Chain Specialist', 'Facilities Manager'],
+                'secondary' => ['Transportation Coordinator', 'Warehouse Manager', 'Fleet Manager'],
+                'work_environments' => ['Logistics companies', 'Warehouses', 'Distribution centers']
             ],
-            'CIR' => [
-                'primary' => ['Systems Administrator', 'Database Administrator', 'IT Coordinator'],
-                'secondary' => ['Network Specialist', 'Security Analyst', 'Technical Support'],
-                'work_environments' => ['IT departments', 'Technology firms', 'Financial institutions']
-            ]
+            // I, A, S
+            'IAS' => [
+                'primary' => ['Clinical Researcher', 'Educational Researcher', 'Psychologist'],
+                'secondary' => ['Anthropologist', 'Sociologist', 'Academic Counselor'],
+                'work_environments' => ['Universities', 'Research centers', 'Clinical settings']
+            ],
+            // I, A, E
+            'IAE' => [
+                'primary' => ['Management Consultant', 'Technology Analyst', 'Strategic Planner'],
+                'secondary' => ['Innovation Director', 'R&D Manager', 'Venture Analyst'],
+                'work_environments' => ['Consulting firms', 'Technology companies', 'Innovation labs']
+            ],
+            // I, A, C
+            'IAC' => [
+                'primary' => ['Financial Analyst', 'Market Researcher', 'Statistician'],
+                'secondary' => ['Actuary', 'Data Architect', 'Research Analyst'],
+                'work_environments' => ['Financial institutions', 'Research firms', 'Analytics companies']
+            ],
+            // I, S, E
+            'ISE' => [
+                'primary' => ['Healthcare Manager', 'Research Program Director', 'Clinical Trial Manager'],
+                'secondary' => ['Public Health Administrator', 'Health Educator', 'Medical Science Liaison'],
+                'work_environments' => ['Hospitals', 'Public health agencies', 'Pharmaceutical companies']
+            ],
+            // I, S, C
+            'ISC' => [
+                'primary' => ['Medical Records Specialist', 'Epidemiologist', 'Health Informatics Specialist'],
+                'secondary' => ['Lab Manager', 'Clinical Data Manager', 'Health Policy Analyst'],
+                'work_environments' => ['Healthcare systems', 'Government health agencies', 'Research institutions']
+            ],
+            // I, E, C
+            'IEC' => [
+                'primary' => ['Data Analyst', 'Business Intelligence Analyst', 'Quantitative Analyst'],
+                'secondary' => ['Risk Manager', 'Investment Analyst', 'Operations Research Analyst'],
+                'work_environments' => ['Financial firms', 'Tech companies', 'Consulting agencies']
+            ],
+            // A, S, E
+            'ASE' => [
+                'primary' => ['Communications Director', 'Advertising Manager', 'Media Producer'],
+                'secondary' => ['Public Relations Manager', 'Event Planner', 'Talent Agent'],
+                'work_environments' => ['Media agencies', 'Entertainment companies', 'PR firms']
+            ],
+            // A, S, C
+            'ASC' => [
+                'primary' => ['Library Curator', 'Archivist', 'Museum Curator'],
+                'secondary' => ['Heritage Conservation Officer', 'Gallery Director', 'Cultural Programs Manager'],
+                'work_environments' => ['Museums', 'Libraries', 'Cultural institutions']
+            ],
+            // A, E, C
+            'AEC' => [
+                'primary' => ['Art Director', 'Advertising Executive', 'Fashion Merchandiser'],
+                'secondary' => ['Publishing Manager', 'Creative Agency Owner', 'Production Coordinator'],
+                'work_environments' => ['Advertising agencies', 'Fashion houses', 'Publishing companies']
+            ],
+            // S, E, C
+            'SEC' => [
+                'primary' => ['Office Manager', 'Executive Assistant', 'Community Services Manager'],
+                'secondary' => ['Non-profit Administrator', 'Hotel Manager', 'Real Estate Agent'],
+                'work_environments' => ['Corporate offices', 'Non-profit organizations', 'Service industries']
+            ],
         ];
 
-        return $careerMappings[$hollandCode] ?? $careerMappings[substr($hollandCode, 0, 2)] ?? [
+        // Permutation-aware lookup: try all orderings of the 3-letter code
+        if (isset($careerMappings[$hollandCode])) {
+            return $careerMappings[$hollandCode];
+        }
+
+        $letters = str_split($hollandCode);
+        $permutations = $this->getPermutationsOf($letters);
+        foreach ($permutations as $perm) {
+            $key = implode('', $perm);
+            if (isset($careerMappings[$key])) {
+                return $careerMappings[$key];
+            }
+        }
+
+        return [
             'primary' => ['Explore careers combining your top interests'],
             'secondary' => ['Consider interdisciplinary roles'],
             'work_environments' => ['Diverse professional settings']
         ];
+    }
+
+    private function getPermutationsOf(array $items): array
+    {
+        if (count($items) <= 1) {
+            return [$items];
+        }
+
+        $result = [];
+        foreach ($items as $key => $item) {
+            $remaining = $items;
+            unset($remaining[$key]);
+            foreach ($this->getPermutationsOf(array_values($remaining)) as $perm) {
+                $result[] = array_merge([$item], $perm);
+            }
+        }
+        return $result;
     }
 
     private function calculateOverallPerformance($allResults)
