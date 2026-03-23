@@ -1,0 +1,72 @@
+@extends('layouts.app')
+@section('title', $quiz->title.' Results')
+
+@section('content')
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h1 class="text-2xl font-bold">{{ $quiz->title }} — Results</h1>
+        <p class="text-sm text-gray-500">Overview of your domain scores</p>
+    </div>
+    <a href="{{ route('dashboard') }}" class="text-sm text-gray-500">← Back to dashboard</a>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="md:col-span-2 p-6 bg-white rounded-xl shadow">
+        <canvas id="domainChart" width="400" height="300"></canvas>
+    </div>
+
+    <div class="p-6 bg-white rounded-xl shadow">
+        <h2 class="font-semibold mb-4">Summary</h2>
+        {{-- <p class="text-sm text-gray-600">Total Score: <strong>{{ $totalScore }}</strong></p>
+        <p class="text-sm text-gray-600">Max Possible: <strong>{{ $totalMax }}</strong></p> --}}
+        <p class="text-sm text-gray-600">Percentage: <strong>{{ $totalPercent }}%</strong></p>
+
+        <hr class="my-4">
+
+        <h3 class="font-medium mb-2">Domain details</h3>
+        @foreach($domains as $d)
+            <div class="mb-3">
+                <div class="flex justify-between text-sm">
+                    <div>{{ $d['title'] }}</div>
+                    <div>{{ $d['percentage'] }}%</div>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-2 mt-2">
+                    <div class="h-2 rounded-full" style="width: {{ $d['percentage'] }}%; background: linear-gradient(90deg,#4f46e5,#06b6d4);"></div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+</div>
+
+{{-- ✅ Load Chart.js --}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const domains = @json($domains->pluck('title'));
+    const scores = @json($domains->pluck('percentage'));
+
+    const ctx = document.getElementById('domainChart').getContext('2d');
+    const config = {
+        type: '{{ $quiz->slug === "ocean" ? "radar" : ($quiz->slug === "riasec" ? "bar" : "bar") }}',
+        data: {
+            labels: domains,
+            datasets: [{
+                label: 'Percentage',
+                data: scores,
+                backgroundColor: 'rgba(59,130,246,0.2)',
+                borderColor: 'rgba(59,130,246,1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: { beginAtZero: true, suggestedMax: 100 }, // radar
+                y: { beginAtZero: true, suggestedMax: 100 }
+            }
+        }
+    };
+    new Chart(ctx, config);
+</script>
+@endsection

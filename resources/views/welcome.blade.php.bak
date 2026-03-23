@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psychometric Portal - Unlock Your Potential</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brandBlue: '#1E3A8A',   // Deep, reliable blue
+                        brandSky: '#3B82F6',    // Lighter blue accent
+                        brandGray: '#F9FAFB',   // Neutral background
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-brandGray text-gray-800 font-sans">
+
+    <!-- Header -->
+    <header class="bg-white shadow fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-brandBlue">Psychometric Portal</h1>
+            <nav class="space-x-6 hidden md:flex">
+                <a href="#features" class="text-gray-700 hover:text-brandSky">Features</a>
+                <a href="#how-it-works" class="text-gray-700 hover:text-brandSky">How It Works</a>
+                <a href="#testimonials" class="text-gray-700 hover:text-brandSky">Testimonials</a>
+                <a href="#faq" class="text-gray-700 hover:text-brandSky">FAQ</a>
+            </nav>
+            <div class="space-x-3">
+                <a href="{{ route('login') }}" class="text-brandBlue font-medium">Login</a>
+                <a href="{{ route('register') }}" class="px-4 py-2 bg-brandBlue text-white rounded-lg hover:bg-brandSky transition">Get Started</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="pt-28 pb-20 bg-gradient-to-r from-brandBlue to-brandSky text-white text-center">
+        <div class="max-w-4xl mx-auto px-6">
+            <h2 class="text-4xl md:text-6xl font-extrabold leading-tight">
+                Unlock Your Potential with Modern Psychometric Assessments
+            </h2>
+            <p class="mt-6 text-lg md:text-xl text-indigo-100">
+                Scientifically designed tools to help you understand your <span class="font-semibold">personality, career interests, and cognitive strengths</span>.
+            </p>
+            <div class="mt-8 flex justify-center space-x-4">
+                <a href="{{ route('register') }}" class="px-8 py-4 bg-white text-brandBlue font-bold rounded-lg shadow hover:bg-gray-100 transition">
+                    Start Your Journey
+                </a>
+                <a href="#features" class="px-8 py-4 bg-brandSky text-white font-bold rounded-lg shadow hover:bg-brandBlue transition">
+                    Learn More
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <h3 class="text-3xl font-bold text-brandBlue">Why Choose Our Platform?</h3>
+            <p class="mt-4 text-gray-600">We combine science, technology, and design to give you assessments that are accurate, engaging, and insightful.</p>
+            <div class="grid md:grid-cols-3 gap-10 mt-12">
+                <div class="p-6 rounded-xl bg-brandGray shadow hover:shadow-lg">
+                    <h4 class="text-xl font-semibold text-brandBlue mb-3">OCEAN Personality Test</h4>
+                    <p class="text-gray-600">Understand yourself through the Big Five traits: openness, conscientiousness, extraversion, agreeableness, and neuroticism.</p>
+                </div>
+                <div class="p-6 rounded-xl bg-brandGray shadow hover:shadow-lg">
+                    <h4 class="text-xl font-semibold text-brandBlue mb-3">RIASEC Career Assessment</h4>
+                    <p class="text-gray-600">Discover your career personality type and match it to real-world professions that fit your interests.</p>
+                </div>
+                <div class="p-6 rounded-xl bg-brandGray shadow hover:shadow-lg">
+                    <h4 class="text-xl font-semibold text-brandBlue mb-3">Cognitive Skills Analysis</h4>
+                    <p class="text-gray-600">Test reasoning, memory, and problem-solving to identify your learning and work strengths.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="py-20 bg-brandGray">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <h3 class="text-3xl font-bold text-brandBlue">How It Works</h3>
+            <div class="mt-12 grid md:grid-cols-3 gap-10 text-left">
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <span class="text-4xl font-bold text-brandSky">1</span>
+                    <h4 class="mt-4 font-semibold text-lg">Sign Up</h4>
+                    <p class="text-gray-600">Create your free account in just a few minutes.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <span class="text-4xl font-bold text-brandSky">2</span>
+                    <h4 class="mt-4 font-semibold text-lg">Take Assessments</h4>
+                    <p class="text-gray-600">Complete the personality, career, and cognitive tests at your own pace.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <span class="text-4xl font-bold text-brandSky">3</span>
+                    <h4 class="mt-4 font-semibold text-lg">Get Insights</h4>
+                    <p class="text-gray-600">Receive detailed reports and actionable steps for personal and career growth.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials" class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <h3 class="text-3xl font-bold text-brandBlue">What People Say</h3>
+            <div class="mt-12 grid md:grid-cols-3 gap-10">
+                <div class="p-6 bg-brandGray rounded-xl shadow">
+                    <p class="text-gray-600 italic">“The OCEAN test gave me clarity about my strengths. It helped me approach my career with confidence.”</p>
+                    <h5 class="mt-4 font-semibold text-brandBlue">— Sarah M.</h5>
+                </div>
+                <div class="p-6 bg-brandGray rounded-xl shadow">
+                    <p class="text-gray-600 italic">“I finally understood what type of work suits me best. The RIASEC test was a game changer!”</p>
+                    <h5 class="mt-4 font-semibold text-brandBlue">— John D.</h5>
+                </div>
+                <div class="p-6 bg-brandGray rounded-xl shadow">
+                    <p class="text-gray-600 italic">“The cognitive test highlighted areas I need to improve. I now have a roadmap for learning.”</p>
+                    <h5 class="mt-4 font-semibold text-brandBlue">— Aisha K.</h5>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="py-20 bg-brandGray">
+        <div class="max-w-4xl mx-auto px-6">
+            <h3 class="text-3xl font-bold text-center text-brandBlue">Frequently Asked Questions</h3>
+            <div class="mt-10 space-y-6">
+                <div>
+                    <h4 class="font-semibold text-lg text-brandBlue">Are the assessments scientifically valid?</h4>
+                    <p class="text-gray-600">Yes, all our assessments are based on widely recognized and validated psychological models.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-lg text-brandBlue">How long does it take?</h4>
+                    <p class="text-gray-600">Each test takes between 10–20 minutes depending on your pace.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-lg text-brandBlue">Will I get a detailed report?</h4>
+                    <p class="text-gray-600">Absolutely. You’ll receive a detailed breakdown along with actionable insights.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-20 bg-gradient-to-r from-brandBlue to-brandSky text-center text-white">
+        <h3 class="text-3xl md:text-4xl font-bold">Ready to Discover Yourself?</h3>
+        <p class="mt-4 text-lg">Join thousands of others who have taken their first step toward self-discovery.</p>
+        <a href="{{ route('register') }}" class="mt-8 inline-block px-8 py-4 bg-white text-brandBlue font-bold rounded-lg shadow hover:bg-gray-100 transition">
+            Get Started Now
+        </a>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-brandBlue text-white py-6 text-center">
+        <p>&copy; {{ date('Y') }} Psychometric Portal. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>
