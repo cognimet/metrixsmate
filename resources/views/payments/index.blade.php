@@ -46,7 +46,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <span class="text-sm font-semibold text-primary-700 bg-primary-100 px-3 py-1 rounded-full">Assessment Pack</span>
                     <div class="text-right">
-                        <span class="text-3xl font-bold text-gray-900">₹1</span>
+                        <span class="text-3xl font-bold text-gray-900">₹999</span>
                         <span class="text-sm text-gray-500">/one-time</span>
                     </div>
                 </div>
