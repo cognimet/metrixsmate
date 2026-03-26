@@ -8,6 +8,8 @@ use App\Models\QuizDomainValueQuestion;
 use App\Models\QuizDomainValueAnswer;
 use App\Models\User;
 use App\Models\UserResult;
+use App\Models\QuizAccess;
+use App\Models\Payment;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -110,9 +112,16 @@ class AssessmentController extends Controller
     public function showAll($quizId)
     {
         $quiz = Quiz::with('domains.questions')->findOrFail($quizId);
+        $user = auth()->user();
+
+        // ═══ CHECK ACCESS — user must have paid or have valid coupon ═══
+        if (!QuizAccess::hasAccess($user, $quiz)) {
+            return redirect()->route('dashboard')
+                ->with('error', 'You do not have access to this assessment. Please make a payment or use a valid coupon code.');
+        }
+        // ═══ END ACCESS CHECK ═══
 
         // ═══ RETAKE BLOCKED — prevent users from retaking a completed assessment ═══
-        $user = auth()->user();
         $slug = strtolower($quiz->slug);
         $completedField = match ($slug) {
             'ocean' => 'is_ocean_assessment_completed',

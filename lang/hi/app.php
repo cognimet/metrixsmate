@@ -295,6 +295,7 @@ return [
     'auth_login_subtitle'     => 'अपनी मनोवैज्ञानिक यात्रा जारी रखने के लिए साइन इन करें',
     'auth_email_placeholder'  => 'आपका@ईमेल.com',
     'auth_sign_in'            => 'साइन इन करें',
+    'auth_or'                 => 'या',
     'auth_new_user'           => 'MetrixsMate में नए हैं?',
     'auth_create_account'     => 'मुफ़्त खाता बनाएं',
     'auth_back_home'          => 'होम पेज पर जाएं',

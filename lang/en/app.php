@@ -296,6 +296,7 @@ return [
     'auth_login_subtitle'     => 'Sign in to continue your psychometric journey',
     'auth_email_placeholder'  => 'you@example.com',
     'auth_sign_in'            => 'Sign In',
+    'auth_or'                 => 'or',
     'auth_new_user'           => 'New to MetrixsMate?',
     'auth_create_account'     => 'Create a free account',
     'auth_back_home'          => 'Back to Home',

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Str;
 
 if (! function_exists('transContent')) {
     /**
@@ -43,3 +44,14 @@ if (! function_exists('transContentList')) {
         return implode($separator . ' ', $translated);
     }
 }
+
+if (! function_exists('slugify')) {
+    /**
+     * Convert a string to a URL-friendly slug
+     */
+    function slugify(string $text): string
+    {
+        return Str::slug($text, '-');
+    }
+}
+

@@ -98,6 +98,79 @@
     </div>
 </div>
 
+{{-- Career Opportunities + Learning Styles --}}
+@php
+    $_careersList = [];
+    if ($riasecResults['career_analysis']) {
+        $_careersList = array_slice(explode(';', $riasecResults['career_analysis']->level_description), 0, 4);
+    }
+    $_lsScores = $oceanResults['domains']->keyBy('name');
+    $_conscientiousness = $_lsScores['Conscientiousness']->percentage ?? 0;
+    $_openness = $_lsScores['Openness']->percentage ?? 0;
+    $_extraversion = $_lsScores['Extraversion']->percentage ?? 0;
+    $_agreeableness = $_lsScores['Agreeableness']->percentage ?? 0;
+    $_learningStyles = [
+        ['name' => 'Reading/Writing', 'icon' => 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', 'color' => 'blue', 'score' => round(($_conscientiousness + $_openness) / 2)],
+        ['name' => 'Verbal', 'icon' => 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z', 'color' => 'green', 'score' => round($_extraversion)],
+        ['name' => 'Kinesthetic', 'icon' => 'M13 10V3L4 14h7v7l9-11h-7z', 'color' => 'purple', 'score' => round(($_agreeableness + $_extraversion) / 2)],
+        ['name' => 'Visual', 'icon' => 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', 'color' => 'amber', 'score' => round($_openness)],
+    ];
+    usort($_learningStyles, function($a, $b) { return $b['score'] - $a['score']; });
+    $_preferredStyle = $_learningStyles[0];
+@endphp
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+    {{-- Career Opportunities --}}
+    <div class="rounded-2xl bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 text-white shadow-card relative overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
+        <div class="p-6 relative">
+            <h2 class="text-xl font-bold mb-1">{{ __('app.results_career_opportunities') }}</h2>
+            <p class="text-sm text-primary-200 mb-4">{{ __('app.results_career_based_on', ['code' => $riasecResults['holland_code']]) }}</p>
+            @if($_careersList)
+            <div class="space-y-2">
+                @foreach($_careersList as $_career)
+                <div class="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
+                    <svg class="w-4 h-4 text-primary-200 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    <span class="text-sm font-medium text-primary-50">{{ transContent(trim($_career)) }}</span>
+                </div>
+                @endforeach
+            </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- Learning Styles --}}
+    <div class="bg-white rounded-2xl shadow-card border border-gray-100 p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-1">Learning Styles</h2>
+        <p class="text-sm text-gray-500 mb-4">Your preferred way of acquiring and processing information</p>
+        <div class="mb-4 p-4 rounded-xl bg-gradient-to-br from-{{ $_preferredStyle['color'] }}-50 to-{{ $_preferredStyle['color'] }}-100 border border-{{ $_preferredStyle['color'] }}-200">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-8 h-8 rounded-lg bg-{{ $_preferredStyle['color'] }}-100 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-{{ $_preferredStyle['color'] }}-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $_preferredStyle['icon'] }}"/></svg>
+                </div>
+                <div>
+                    <h4 class="font-bold text-{{ $_preferredStyle['color'] }}-900">Preferred Style</h4>
+                    <p class="text-sm font-semibold text-{{ $_preferredStyle['color'] }}-800">{{ $_preferredStyle['name'] }}</p>
+                </div>
+            </div>
+            <p class="text-xs text-{{ $_preferredStyle['color'] }}-700">You learn best through {{ strtolower($_preferredStyle['name']) }} methods. Focus on leveraging this style in your development journey.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            @foreach($_learningStyles as $_style)
+            <div class="rounded-xl bg-gray-50 border border-gray-200 p-3 text-center {{ $_style['name'] === $_preferredStyle['name'] ? 'ring-2 ring-'.$_style['color'].'-500 ring-offset-1' : '' }}">
+                <div class="w-8 h-8 rounded-lg bg-{{ $_style['color'] }}-50 flex items-center justify-center mx-auto mb-2">
+                    <svg class="w-4 h-4 text-{{ $_style['color'] }}-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $_style['icon'] }}"/></svg>
+                </div>
+                <h4 class="text-xs font-bold text-gray-900 mb-1">{{ $_style['name'] }}</h4>
+                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                    <div class="bg-{{ $_style['color'] }}-500 h-1.5 rounded-full" style="width:{{ $_style['score'] }}%"></div>
+                </div>
+                <p class="text-xs text-gray-600 mt-1 font-semibold">{{ $_style['score'] }}%</p>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
 {{-- OCEAN Personality --}}
 <div class="bg-white rounded-2xl shadow-card border border-gray-100 mb-8">
     <div class="p-6 border-b border-gray-100">
@@ -321,77 +394,9 @@
     </div>
     @endif
 
-    {{-- ── Learning Styles ── --}}
-    @php
-        $scores = $oceanResults['domains']->keyBy('name');
-        $conscientiousness = $scores['Conscientiousness']->percentage ?? 0;
-        $openness = $scores['Openness']->percentage ?? 0;
-        $extraversion = $scores['Extraversion']->percentage ?? 0;
-        $agreeableness = $scores['Agreeableness']->percentage ?? 0;
-        
-        $learningStyles = [
-            ['name' => 'Reading/Writing', 'icon' => 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', 'color' => 'blue', 'score' => round(($conscientiousness + $openness) / 2)],
-            ['name' => 'Verbal', 'icon' => 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2m2 2a2 2 0 002-2m-2 2v-6a2 2 0 012-2h.344a2 2 0 011.894 1.266l1.068 3.057a1 1 0 001.894-1.266l-1.068-3.057a2 2 0 00-1.894-1.266h-.344a2 2 0 01-2-2V5a2 2 0 012-2h2.303a1 1 0 00.894-1.553l-.894-1.447A1 1 0 0010.607 2H4.121A1 1 0 003.08 4.194l.894 1.447A1 1 0 004.868 7h5.13a2 2 0 002-2V5a2 2 0 01 2 2v6a2 2 0 01-2 2h-.344', 'color' => 'green', 'score' => round($extraversion)],
-            ['name' => 'Kinesthetic', 'icon' => 'M13 10V3L4 14h7v7l9-11h-7z', 'color' => 'purple', 'score' => round(($agreeableness + $extraversion) / 2)],
-            ['name' => 'Visual', 'icon' => 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', 'color' => 'amber', 'score' => round($openness)],
-        ];
-        
-        usort($learningStyles, function($a, $b) { return $b['score'] - $a['score']; });
-        $preferredStyle = $learningStyles[0];
-    @endphp
+    {{-- ── Long-Term Vision ── --}}
     <div class="p-6 border-b border-gray-100">
-        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-1">Learning Styles</h3>
-        <p class="text-xs text-gray-400 mb-4">Your preferred way of acquiring and processing information</p>
-        
-        <div class="mb-6 p-4 rounded-xl bg-gradient-to-br from-{{ $preferredStyle['color'] }}-50 to-{{ $preferredStyle['color'] }}-100 border border-{{ $preferredStyle['color'] }}-200">
-            <div class="flex items-center gap-3 mb-2">
-                <div class="w-8 h-8 rounded-lg bg-{{ $preferredStyle['color'] }}-100 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-{{ $preferredStyle['color'] }}-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $preferredStyle['icon'] }}"/></svg>
-                </div>
-                <div>
-                    <h4 class="font-bold text-{{ $preferredStyle['color'] }}-900">Preferred Learning Style</h4>
-                    <p class="text-sm font-semibold text-{{ $preferredStyle['color'] }}-800">{{ $preferredStyle['name'] }}</p>
-                </div>
-            </div>
-            <p class="text-xs text-{{ $preferredStyle['color'] }}-700">You learn best through {{ strtolower($preferredStyle['name']) }} methods. Focus on leveraging this style in your development journey.</p>
-        </div>
-        
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            @foreach($learningStyles as $style)
-            <div class="rounded-xl bg-white border border-gray-200 p-4 text-center {{ $style['name'] === $preferredStyle['name'] ? 'ring-2 ring-'.$style['color'].'-500 ring-offset-1' : '' }}">
-                <div class="w-10 h-10 rounded-lg bg-{{ $style['color'] }}-50 flex items-center justify-center mx-auto mb-2">
-                    <svg class="w-4 h-4 text-{{ $style['color'] }}-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $style['icon'] }}"/></svg>
-                </div>
-                <h4 class="text-xs font-bold text-gray-900 mb-1">{{ $style['name'] }}</h4>
-                <div class="w-full bg-gray-200 rounded-full h-1.5">
-                    <div class="bg-{{ $style['color'] }}-500 h-1.5 rounded-full" style="width:{{ $style['score'] }}%"></div>
-                </div>
-                <p class="text-xs text-gray-600 mt-1.5 font-semibold">{{ $style['score'] }}%</p>
-            </div>
-            @endforeach
-        </div>
-    </div>
-
-    {{-- ── Career Pathway + Long-Term Vision ── --}}
-    <div class="p-6 border-b border-gray-100">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {{-- Career Pathway --}}
-            <div class="rounded-xl bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 text-white p-5 relative overflow-hidden">
-                <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
-                <h4 class="font-bold mb-3 relative">{{ __('app.results_career_opportunities') }}</h4>
-                <div class="space-y-2 relative">
-                    @foreach($careersList as $career)
-                    <div class="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
-                        <svg class="w-4 h-4 text-primary-200 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        <span class="text-sm font-medium text-primary-50">{{ transContent(trim($career)) }}</span>
-                    </div>
-                    @endforeach
-                </div>
-                <p class="mt-3 text-xs text-primary-200">{{ __('app.results_career_based_on', ['code' => $riasecResults['holland_code']]) }}</p>
-            </div>
-
-            {{-- Long-Term Vision --}}
-            <div class="rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 p-5">
+        <div class="rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 p-5">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                         <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
@@ -416,7 +421,6 @@
                     </li>
                 </ul>
             </div>
-        </div>
     </div>
 
     {{-- ── Recommended Resources ── --}}

@@ -52,6 +52,9 @@
             <div class="hidden md:flex items-center gap-1">
                 <a href="{{ route('dashboard') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">{{ __('app.dashboard') }}</a>
                 <a href="{{ route('results.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('results.*') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">{{ __('app.my_results') }}</a>
+                <a href="{{ route('certificates.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('certificates.*') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">Certificate</a>
+                {{-- <a href="{{ route('school-finder.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('school-finder.*') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">School Finder</a> --}}
+                <a href="{{ route('payments.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('payments.*') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">Payments</a>
             </div>
 
             <div class="flex items-center gap-2">
@@ -96,6 +99,9 @@
     <div x-show="open" x-transition class="md:hidden border-t border-gray-100 bg-white pb-3">
         <a href="{{ route('dashboard') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('dashboard') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">{{ __('app.dashboard') }}</a>
         <a href="{{ route('results.index') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('results.*') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">{{ __('app.my_results') }}</a>
+        <a href="{{ route('certificates.index') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('certificates.*') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">Certificate</a>
+        {{-- <a href="{{ route('school-finder.index') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('school-finder.*') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">School Finder</a> --}}
+        <a href="{{ route('payments.index') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('payments.*') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">Payments</a>
     </div>
 </nav>
 

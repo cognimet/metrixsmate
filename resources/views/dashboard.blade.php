@@ -14,6 +14,51 @@
 @section('content')
 <div class="space-y-8">
 
+    {{-- ═══ Access Control Section (Global) ═══ --}}
+    @php
+        $user = auth()->user();
+        $quizzes = isset($quizzes) ? $quizzes : \App\Models\Quiz::all();
+        $hasFullAccess = $quizzes->every(fn($q) => \App\Models\QuizAccess::hasAccess($user, $q));
+    @endphp
+
+    @if(!$hasFullAccess)
+    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+                <svg class="w-6 h-6 text-amber-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-amber-900 mb-2">Unlock All Assessments</h3>
+                <p class="text-amber-800 mb-4">Get full access to all assessments by making a payment or using a coupon code.</p>
+                <div class="flex gap-3 flex-wrap">
+                    <button onclick="showCouponModal()"
+                        class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m-4 11H9m6 0h.01M9 17h.01M9 4h6a2 2 0 012 2v12a2 2 0 01-2 2H9a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+                        Have a Coupon?
+                    </button>
+                    <a href="{{ route('payments.index') }}"
+                        class="px-6 py-2.5 bg-gray-900 hover:bg-black text-white font-semibold rounded-lg transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 4a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        Pay ₹1 to Unlock
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @else
+    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6">
+        <div class="flex items-center gap-3">
+            <div class="flex-shrink-0">
+                <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-green-900">All Assessments Unlocked</h3>
+                <p class="text-green-800 text-sm">You have full access to all assessments.</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- ═══ Progress Overview ═══ --}}
     @php
         $totalAssessments = 3;
@@ -94,20 +139,11 @@
                         <p class="text-gray-500 text-sm mb-6 leading-relaxed">{{ $quiz->locale_description }}</p>
 
                         @if($completed)
-                            <div class="flex gap-3">
-                                <a href="{{ route('results.show', $quiz->id) }}"
-                                   class="flex-1 text-center px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition">
-                                    {{ __('app.dash_view_results') }}
-                                </a>
-                                {{-- ═══════════════════════════════════════════════════════ --}}
-                                {{-- RETAKE DISABLED — Do not delete, uncomment to re-enable --}}
-                                {{-- <a href="{{ route('assessments.showAll', $quiz->id) }}"
-                                       class="px-4 py-2.5 border-2 border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:border-primary-400 hover:text-primary-600 transition">
-                                        Retake
-                                    </a> --}}
-                                {{-- ═══════════════════════════════════════════════════════ --}}
-                            </div>
-                        @else
+                            <a href="{{ route('results.show', $quiz->id) }}"
+                               class="block text-center px-6 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 shadow-sm transition">
+                                {{ __('app.dash_view_results') }}
+                            </a>
+                        @elseif($hasFullAccess)
                             <a href="{{ route('assessments.showAll', $quiz->id) }}"
                                class="block text-center px-6 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 shadow-sm transition">
                                 <span class="flex items-center justify-center gap-2">
@@ -115,6 +151,10 @@
                                     {{ __('app.dash_start_assessment') }}
                                 </span>
                             </a>
+                        @else
+                            <div class="text-center p-4 bg-gray-50 rounded-lg">
+                                <p class="text-sm text-gray-600 font-medium">Unlock to start</p>
+                            </div>
                         @endif
                     </div>
                 </div>
@@ -141,14 +181,6 @@
             {{ __('app.dash_view_complete') }}
         </a>
     </div>
-    @else
-    <div class="bg-primary-50 border border-primary-100 rounded-2xl p-5 flex items-start gap-3">
-        <svg class="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
-        <div>
-            <h3 class="text-sm font-semibold text-primary-900">{{ __('app.dash_unlock_msg_title') }}</h3>
-            <p class="mt-1 text-sm text-primary-700">{{ __('app.dash_unlock_msg_desc') }}</p>
-        </div>
-    </div>
     @endif
 
     @else
@@ -161,4 +193,8 @@
     </div>
     @endif
 </div>
+
+{{-- Include Coupon Modal Component --}}
+@include('components.coupon-modal')
+
 @endsection
