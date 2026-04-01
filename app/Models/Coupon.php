@@ -13,6 +13,9 @@ class Coupon extends Model
         'expires_at' => 'datetime',
         'used_at' => 'datetime',
         'metadata' => 'array',
+        'discount_value' => 'decimal:2',
+        'minimum_amount' => 'decimal:2',
+        'is_active' => 'boolean',
     ];
 
     public function user()

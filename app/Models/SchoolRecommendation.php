@@ -34,6 +34,12 @@ class SchoolRecommendation extends Model
         return $this->belongsTo(DynamicSchool::class);
     }
 
+    // Alias for dynamicSchool
+    public function school()
+    {
+        return $this->belongsTo(DynamicSchool::class, 'dynamic_school_id');
+    }
+
     public function city()
     {
         return $this->belongsTo(City::class);

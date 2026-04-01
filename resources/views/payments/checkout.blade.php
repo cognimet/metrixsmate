@@ -80,7 +80,7 @@
             {{-- Divider --}}
             <div class="relative my-6">
                 <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
-                <div class="relative flex justify-center text-sm"><span class="px-4 bg-white text-gray-400">After payment</span></div>
+                <div class="relative flex justify-center text-sm"><span class="px-4 bg-white text-gray-400">Verify Your Payment</span></div>
             </div>
 
             {{-- Verify Payment Form --}}
@@ -90,18 +90,28 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">UPI Transaction ID <span class="text-red-500">*</span></label>
                         <input type="text" name="transaction_id" required minlength="6" maxlength="50"
-                               placeholder="e.g., 425698712345"
-                               class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition">
+                               pattern="[a-zA-Z0-9]{6,50}"
+                               placeholder="e.g., 425698712345UPI or 202312251234567890AB"
+                               class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition @error('transaction_id') border-red-500 @enderror"
+                               value="{{ old('transaction_id') }}">
+                        <p class="text-xs text-gray-500 mt-2">
+                            Find this in your UPI payment receipt or transaction history. It's a 6-50 character alphanumeric code.
+                        </p>
                         @error('transaction_id')
-                        <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                        <p class="text-xs text-red-500 mt-2 font-medium">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Your UPI ID (optional)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Your UPI ID <span class="text-gray-400">(optional)</span></label>
                         <input type="text" name="upi_id"
                                placeholder="e.g., yourname@upi"
-                               class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition">
+                               pattern="[a-zA-Z0-9._-]+@[a-zA-Z]{3,}"
+                               class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition @error('upi_id') border-red-500 @enderror"
+                               value="{{ old('upi_id') }}">
+                        @error('upi_id')
+                        <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl font-semibold text-sm hover:from-primary-700 hover:to-primary-800 transition-all duration-200 shadow-sm hover:shadow-md">
@@ -109,6 +119,12 @@
                     </button>
                 </div>
             </form>
+
+            <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p class="text-xs text-blue-800">
+                    <strong>📝 Important:</strong> Please ensure you enter the correct transaction ID from your UPI payment. Each transaction ID can only be used once. If you make a mistake, payment verification will be rejected.
+                </p>
+            </div>
 
             <p class="text-xs text-gray-400 text-center mt-4">
                 Payment verification is manual. If there are any issues, please contact support.

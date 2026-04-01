@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Payment;
 use App\Models\Quiz;
 use App\Models\QuizAccess;
+use App\Http\Requests\VerifyPaymentRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -36,10 +37,15 @@ class PaymentController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:1',
+            'type' => 'nullable|string|in:payment,tokens',
+            'description' => 'nullable|string|max:255',
         ]);
 
         $user = Auth::user();
         $orderId = 'MM-' . strtoupper(Str::random(8)) . '-' . time();
+        
+        $type = $request->input('type', 'payment');
+        $description = $request->input('description', 'MetrixsMate Assessment Payment');
 
         $payment = Payment::create([
             'user_id' => $user->id,
@@ -48,7 +54,11 @@ class PaymentController extends Controller
             'currency' => 'INR',
             'status' => 'pending',
             'payment_method' => 'upi',
-            'description' => 'MetrixsMate Assessment Payment',
+            'description' => $description,
+            'metadata' => [
+                'type' => $type,
+                'created_at' => now()->toIso8601String(),
+            ],
         ]);
 
         // Generate UPI deep link
@@ -62,17 +72,8 @@ class PaymentController extends Controller
     /**
      * Verify payment (manual confirmation for free UPI)
      */
-    public function verify(Request $request, Payment $payment)
+    public function verify(VerifyPaymentRequest $request, Payment $payment)
     {
-        $request->validate([
-            'transaction_id' => 'required|string|min:6|max:50',
-            'upi_id' => 'nullable|string|max:100',
-        ]);
-
-        if ($payment->user_id !== Auth::id()) {
-            abort(403);
-        }
-
         if ($payment->isCompleted()) {
             return redirect()->route('payments.index')
                 ->with('error', 'This payment is already verified.');
@@ -85,16 +86,32 @@ class PaymentController extends Controller
             'paid_at' => now(),
         ]);
 
-        // Grant access to all quizzes for this user
         $user = Auth::user();
-        $quizzes = Quiz::all();
+
+        // Handle different payment types
+        $paymentType = $payment->metadata['type'] ?? 'payment';
         
-        foreach ($quizzes as $quiz) {
-            QuizAccess::grantViaPayment($user, $quiz, $payment);
+        if ($paymentType === 'tokens') {
+            // Add search tokens for token purchase
+            if ($payment->amount >= 100) {
+                $user->addSearchTokens(3); // 3 tokens for ₹100
+                return redirect()->route('school-finder.ai.index')
+                    ->with('success', '🎁 Payment verified! 3 search tokens added to your account. Happy searching!');
+            }
+        } else {
+            // Grant access to all quizzes for regular assessment payment
+            $quizzes = Quiz::all();
+            
+            foreach ($quizzes as $quiz) {
+                QuizAccess::grantViaPayment($user, $quiz, $payment);
+            }
+
+            return redirect()->route('payments.index')
+                ->with('success', 'Payment verified successfully! You now have access to all assessments. Thank you.');
         }
 
         return redirect()->route('payments.index')
-            ->with('success', 'Payment verified successfully! You now have access to all assessments. Thank you.');
+            ->with('success', 'Payment verified successfully!');
     }
 
     /**

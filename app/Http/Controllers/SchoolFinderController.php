@@ -10,6 +10,7 @@ use App\Models\DynamicSchool;
 use App\Models\SchoolRecommendation;
 use App\Models\UserResult;
 use App\Services\AiSchoolFinderService;
+use App\Services\GeminiSchoolFinderService;
 use App\Services\SchoolRecommendationEngine;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -18,13 +19,16 @@ class SchoolFinderController extends Controller
 {
     private $aiService;
     private $recommendationEngine;
+    private $geminiService;
 
     public function __construct(
         AiSchoolFinderService $aiService,
-        SchoolRecommendationEngine $recommendationEngine
+        SchoolRecommendationEngine $recommendationEngine,
+        GeminiSchoolFinderService $geminiService
     ) {
-        $this->aiService = $aiService;
+        $this->aiService           = $aiService;
         $this->recommendationEngine = $recommendationEngine;
+        $this->geminiService       = $geminiService;
     }
 
     /**
@@ -60,53 +64,112 @@ class SchoolFinderController extends Controller
     }
 
     /**
-     * Find recommended schools based on assessment results (AI-powered)
+     * Find recommended schools based on assessment results (AI-powered via Gemini)
      */
     public function findSchools(Request $request)
     {
-        $request->validate([
-            'city_id' => 'required|exists:cities,id',
-        ]);
-
         $user = Auth::user();
-        $city = City::with('state.country')->findOrFail($request->city_id);
-
-        // Generate AI-powered recommendations using the new engine
-        $result = $this->recommendationEngine->generateRecommendations($user, $city, limit: 10);
-
-        if (!$result['success']) {
-            return back()->withErrors($result['message']);
+        
+        // Check if user has completed all assessments
+        if (!$user->hasCompletedAllAssessments()) {
+            return back()
+                ->withInput()
+                ->withErrors(['search' => 'Please complete all assessments (RIASEC, Cognitive, and OCEAN) to use Assessment-Based search.'])
+                ->with('assessmentRequired', true);
+        }
+        
+        // Check if user has assessment search tokens
+        if (!$user->canUseAssessmentSearch()) {
+            return back()
+                ->withInput()
+                ->withErrors(['search' => 'You have used all your free Assessment-Based searches. Purchase tokens to continue.'])
+                ->with('showTokenPurchaseModal', true)
+                ->with('tokenType', 'assessment');
+        }
+        
+        // Support both city_id and city name-based inputs
+        $rules = ['city_id' => 'nullable|exists:cities,id'];
+        
+        if ($request->input('city_id')) {
+            $rules['city_id'] = 'required|exists:cities,id';
+        } else {
+            // Validate city name inputs
+            $rules = array_merge($rules, [
+                'country' => 'required|string|max:100',
+                'state'   => 'required|string|max:100',
+                'city'    => 'required|string|max:100',
+            ]);
         }
 
-        $recommendations = collect($result['recommendations']);
+        $request->validate($rules);
+        
+        // Find city by name if city_id not provided
+        if (!$request->input('city_id')) {
+            $stateName = $request->state;
+            $cityName = $request->city;
+            
+            $city = City::whereHas('state', function ($q) use ($stateName) {
+                $q->where('name', $stateName);
+            })
+            ->where('name', $cityName)
+            ->with('state.country')
+            ->first();
 
-        // Build profile summary for display
+            if (!$city) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['city' => "City '{$cityName}' not found in {$stateName}. Please check the spelling."]);
+            }
+        } else {
+            $city = City::with('state.country')->findOrFail($request->city_id);
+        }
+
+        // Use Gemini service to search for schools based on assessment profile
+        // Build assessment-based filters
+        $filters = [
+            'country' => $city->state->country->name,
+            'state' => $city->state->name,
+            'city' => $city->name,
+            'school_level' => 'primary', // Default: can be customized based on user age
+            'class_range' => 'class-4-to-7', // Default
+            'limit' => 10,
+        ];
+
+        // Get user profile for assessment context
         $riasecDomains = UserResult::where('user_id', $user->id)
             ->where('assessment_type', 'riasec')
             ->where('result_type', 'domain')
+            ->orderByDesc('percentage')
             ->get();
 
-        $cognitiveDomains = UserResult::where('user_id', $user->id)
-            ->where('assessment_type', 'cognitive')
-            ->where('result_type', 'domain')
-            ->get();
+        $topRiasec = $riasecDomains->take(2)->pluck('name')->implode(', ');
+        
+        // Add assessment context to prompt (Gemini will understand)
+        $filters['assessment_context'] = "User's top interests: {$topRiasec}";
 
-        $oceanDomains = UserResult::where('user_id', $user->id)
-            ->where('assessment_type', 'ocean')
-            ->where('result_type', 'domain')
-            ->get();
+        $result = $this->geminiService->searchSchools($filters);
 
-        $profileSummary = $this->buildProfileSummary($riasecDomains, $cognitiveDomains, $oceanDomains);
-        $recommendedTypes = $this->getRecommendedSchoolTypes($riasecDomains);
+        if (!$result['success']) {
+            return back()
+                ->withInput()
+                ->withErrors(['search' => $result['error']]);
+        }
 
-        $countries = Country::orderBy('name')->get();
-        $allCompleted = $user->hasCompletedAllAssessments();
-        $analytics = $this->recommendationEngine->getAnalytics($user);
+        // Add assessment-specific metadata
+        $result['meta']['search_type'] = 'assessment';
+        $result['meta']['profile_context'] = "Based on user assessment profile (RIASEC: {$topRiasec})";
+        
+        // Consume token after successful search
+        $user->consumeAssessmentSearch();
 
-        return view('school-finder.results', compact(
-            'recommendations', 'city', 'profileSummary', 'recommendedTypes',
-            'countries', 'allCompleted', 'analytics', 'result'
-        ));
+        return view('school-finder.results', [
+            'schools'  => $result['schools'],
+            'meta'     => $result['meta'],
+            'filters'  => $request->only(['country', 'state', 'city']),
+            'fromCache'=> $result['from_cache'] ?? false,
+            'searchType' => 'assessment',
+            'remainingSearches' => $user->getTotalAvailableSearches() - 1,
+        ]);
     }
 
     /**
@@ -280,5 +343,152 @@ class SchoolFinderController extends Controller
         }
 
         return array_unique($types) ?: ['mainstream'];
+    }
+
+    // ─── Gemini School Finder ─────────────────────────────────────────────────
+
+    /**
+     * Show Gemini-powered school finder form.
+     */
+    public function geminiIndex()
+    {
+        $countries = Country::orderBy('name')->get();
+
+        return view('school-finder.gemini', compact('countries'));
+    }
+
+    // ─── Unified MetrixsMate AI School Finder ────────────────────────────────────
+
+    /**
+     * Show unified MetrixsMate AI School Finder form.
+     */
+    public function showSearchForm()
+    {
+        $user = Auth::user();
+        $countries = Country::orderBy('name')->get();
+        $assessmentsCompleted = $user->hasCompletedAllAssessments();
+        
+        // Get token status for the view
+        $aiSearchesRemaining = $user->getRemainingAiSearches();
+        $assessmentSearchesRemaining = $user->getRemainingAssessmentSearches();
+        $paidTokensRemaining = $user->paid_search_tokens;
+
+        return view('school-finder.search', compact(
+            'countries',
+            'assessmentsCompleted',
+            'aiSearchesRemaining',
+            'assessmentSearchesRemaining',
+            'paidTokensRemaining'
+        ));
+    }
+
+    /**
+     * Handle unified MetrixsMate AI school search submission.
+     */
+    public function search(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Check if user has AI search tokens
+        if (!$user->canUseAiSearch()) {
+            return back()
+                ->withInput()
+                ->withErrors(['search' => 'You have used all your free AI searches. Purchase tokens to continue.'])
+                ->with('showTokenPurchaseModal', true)
+                ->with('tokenType', 'ai');
+        }
+        
+        $validated = $request->validate([
+            'country'        => 'required|string|max:100',
+            'state'          => 'required|string|max:100',
+            'city'           => 'required|string|max:100',
+            'school_level'   => 'required|string|in:pre-primary,primary,secondary,senior,matric',
+            'class_range'    => 'required|string|in:nursery-to-3,class-4-to-7,class-8-to-10,class-10-plus',
+            'stream'         => 'nullable|string|in:PCM,PCB,PCMB,Commerce,Arts,Vocational',
+            'board'          => 'nullable|string|in:CBSE,RBSE,ICSE,IB,Cambridge,State',
+            'fees_min'       => 'nullable|integer|min:0',
+            'fees_max'       => 'nullable|integer|min:0',
+            'academic_level' => 'nullable|string|in:below_average,average,above_average,excellent',
+            'limit'          => 'nullable|integer|min:5|max:20',
+        ]);
+
+        $result = $this->geminiService->searchSchools($validated);
+
+        if (!$result['success']) {
+            return back()
+                ->withInput()
+                ->withErrors(['search' => $result['error']]);
+        }
+        
+        // Consume token after successful search
+        $user->consumeAiSearch();
+
+        return view('school-finder.results', [
+            'schools'  => $result['schools'],
+            'meta'     => $result['meta'],
+            'filters'  => $validated,
+            'fromCache'=> $result['from_cache'] ?? false,
+            'searchType' => 'ai',
+            'remainingSearches' => $user->getTotalAvailableSearches() - 1,
+        ]);
+    }
+
+    /**
+     * Handle Gemini school search submission.
+     */
+    public function geminiSearch(Request $request)
+    {
+        $validated = $request->validate([
+            'country'        => 'required|string|max:100',
+            'state'          => 'required|string|max:100',
+            'city'           => 'required|string|max:100',
+            'stream'         => 'required|string|in:PCM,PCB,PCMB,Commerce,Arts,Vocational,Any',
+            'board'          => 'required|string|in:CBSE,RBSE,ICSE,IB,Cambridge,State,Any',
+            'fees_min'       => 'nullable|integer|min:0',
+            'fees_max'       => 'nullable|integer|min:0',
+            'academic_level' => 'nullable|string|in:below_average,average,above_average,excellent',
+            'limit'          => 'nullable|integer|min:5|max:20',
+        ]);
+
+        // Normalise "Any" to null so the prompt isn't artificially constrained
+        if (($validated['stream'] ?? '') === 'Any')  $validated['stream']  = null;
+        if (($validated['board']  ?? '') === 'Any')  $validated['board']   = null;
+
+        $result = $this->geminiService->searchSchools($validated);
+
+        if (!$result['success']) {
+            return back()
+                ->withInput()
+                ->withErrors(['gemini' => $result['error']]);
+        }
+
+        return view('school-finder.results', [
+            'schools'  => $result['schools'],
+            'meta'     => $result['meta'],
+            'filters'  => $validated,
+            'fromCache'=> $result['from_cache'] ?? false,
+        ]);
+    }
+
+    /**
+     * AJAX: re-rank or re-fetch with updated filters (returns JSON).
+     */
+    public function geminiAjaxSearch(Request $request)
+    {
+        $validated = $request->validate([
+            'country'        => 'required|string|max:100',
+            'state'          => 'required|string|max:100',
+            'city'           => 'required|string|max:100',
+            'stream'         => 'nullable|string|max:50',
+            'board'          => 'nullable|string|max:50',
+            'fees_min'       => 'nullable|integer|min:0',
+            'fees_max'       => 'nullable|integer|min:0',
+            'academic_level' => 'nullable|string',
+            'limit'          => 'nullable|integer|min:5|max:20',
+        ]);
+
+        $result = $this->geminiService->searchSchools($validated);
+
+        return response()->json($result);
     }
 }

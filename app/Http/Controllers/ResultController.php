@@ -6,92 +6,45 @@ use App\Models\Quiz;
 use App\Models\QuizDomainValue;
 use App\Models\UserResult;
 use App\Models\QuizDomainValueAnswer;
+use App\Services\ResultService;
+use App\Transformers\ResultTransformer;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-
 class ResultController extends Controller
 {
+    public function __construct(protected ResultService $resultService) {}
 
     public function index()
     {
         $user = Auth::user();
 
-        // Fetch OCEAN assessment results
-        $oceanResults = $this->getOceanResults($user->id);
-        
-        // Fetch RIASEC assessment results
-        $riasecResults = $this->getRiasecResults($user->id);
-        
-        // Fetch Cognitive assessment results
-        $cognitiveResults = $this->getCognitiveResults($user->id);
-
-        // Check if all assessments are completed
-        $hasCompletedAll = $oceanResults['domains']->isNotEmpty() && 
-                          $riasecResults['domains']->isNotEmpty() && 
-                          $cognitiveResults['domains']->isNotEmpty();
-
-        if (!$hasCompletedAll) {
+        if (!$this->resultService->hasCompletedAllAssessments($user->id)) {
             return redirect()->route('dashboard')
                 ->with('error', 'Please complete all assessments to view results.');
         }
 
-        return view('results.index', compact('oceanResults', 'riasecResults', 'cognitiveResults'));
+        $oceanResults          = $this->resultService->getOceanResults($user->id);
+        $riasecResults         = $this->resultService->getRiasecResults($user->id);
+        $cognitiveResults      = $this->resultService->getCognitiveResults($user->id);
+        $streamRecommendations = $this->resultService->getStreamRecommendations($oceanResults, $riasecResults, $cognitiveResults);
+
+        return view('results.index', compact('oceanResults', 'riasecResults', 'cognitiveResults', 'streamRecommendations'));
     }
 
     public function downloadReport($quizId)
     {
         $user = Auth::user();
 
-        // Fetch all results (same as index method)
-        $oceanResults = $this->getOceanResults($user->id);
-        $riasecResults = $this->getRiasecResults($user->id);
-        $cognitiveResults = $this->getCognitiveResults($user->id);
-
-        // Check if all assessments are completed
-        $hasCompletedAll = $oceanResults['domains']->isNotEmpty() && 
-                          $riasecResults['domains']->isNotEmpty() && 
-                          $cognitiveResults['domains']->isNotEmpty();
-
-        if (!$hasCompletedAll) {
+        if (!$this->resultService->hasCompletedAllAssessments($user->id)) {
             return redirect()->route('dashboard')
                 ->with('error', 'Please complete all assessments before downloading the report.');
         }
 
-        // Calculate learning styles from OCEAN scores
-        $scores = $oceanResults['domains']->keyBy('name');
-        $conscientiousness = $scores['Conscientiousness']->percentage ?? 0;
-        $openness = $scores['Openness']->percentage ?? 0;
-        $extraversion = $scores['Extraversion']->percentage ?? 0;
-        $agreeableness = $scores['Agreeableness']->percentage ?? 0;
+        $reportData = $this->resultService->buildReportData($user);
 
-        $learningStyles = [
-            ['name' => 'Reading/Writing', 'score' => round(($conscientiousness + $openness) / 2)],
-            ['name' => 'Verbal', 'score' => round($extraversion)],
-            ['name' => 'Kinesthetic', 'score' => round(($agreeableness + $extraversion) / 2)],
-            ['name' => 'Visual', 'score' => round($openness)],
-        ];
-        
-        usort($learningStyles, function($a, $b) { return $b['score'] - $a['score']; });
-
-        // Prepare additional data for PDF
-        $reportData = [
-            'user' => $user,
-            'oceanResults' => $oceanResults,
-            'riasecResults' => $riasecResults,
-            'cognitiveResults' => $cognitiveResults,
-            'learningStyles' => $learningStyles,
-            'generatedDate' => Carbon::now()->format('F j, Y'),
-            'overallScore' => [
-                'personality' => round($oceanResults['domains']->avg('percentage'), 1),
-                'career' => round($riasecResults['domains']->avg('percentage'), 1),
-                'cognitive' => round($cognitiveResults['average_score'], 1)
-            ]
-        ];
-
-        // Generate PDF
         $pdf = Pdf::loadView('results.pdf-report', $reportData)
                   ->setPaper('a4', 'portrait')
                   ->setOptions([
@@ -100,263 +53,29 @@ class ResultController extends Controller
                       'isRemoteEnabled' => true,
                   ]);
 
-        // Download with user's name and date
         $fileName = 'Psychometric-Report-' . str_replace(' ', '-', $user->name) . '-' . now()->format('Y-m-d') . '.pdf';
-        
+
         return $pdf->download($fileName);
     }
 
-    private function getPerformanceLevel($percentage)
+    public function exportJson()
     {
-        if ($percentage >= 85) return 'exceptional';
-        if ($percentage >= 70) return 'high';
-        if ($percentage >= 40) return 'average';
-        if ($percentage >= 20) return 'below-average';
-        return 'low';
-    }
+        $user = Auth::user();
 
-    private function getPerformanceColors($level)
-    {
-        $colors = [
-            'exceptional' => [
-                'text' => 'text-green-700',
-                'bg' => 'bg-green-50',
-                'border' => 'border-green-200',
-                'badge' => 'bg-green-100 text-green-800',
-                'progress' => 'bg-green-500',
-                'hex_text' => '#15803d',
-                'hex_bg' => '#f0fdf4',
-                'hex_border' => '#bbf7d0',
-                'hex_progress' => '#10b981'
-            ],
-            'high' => [
-                'text' => 'text-blue-700',
-                'bg' => 'bg-blue-50',
-                'border' => 'border-blue-200',
-                'badge' => 'bg-blue-100 text-blue-800',
-                'progress' => 'bg-blue-500',
-                'hex_text' => '#1d4ed8',
-                'hex_bg' => '#eff6ff',
-                'hex_border' => '#bfdbfe',
-                'hex_progress' => '#3b82f6'
-            ],
-            'average' => [
-                'text' => 'text-amber-700',
-                'bg' => 'bg-amber-50',
-                'border' => 'border-amber-200',
-                'badge' => 'bg-amber-100 text-amber-800',
-                'progress' => 'bg-amber-500',
-                'hex_text' => '#d97706',
-                'hex_bg' => '#fffbeb',
-                'hex_border' => '#fde68a',
-                'hex_progress' => '#f59e0b'
-            ],
-            'below-average' => [
-                'text' => 'text-orange-700',
-                'bg' => 'bg-orange-50',
-                'border' => 'border-orange-200',
-                'badge' => 'bg-orange-100 text-orange-800',
-                'progress' => 'bg-orange-500',
-                'hex_text' => '#ea580c',
-                'hex_bg' => '#fff7ed',
-                'hex_border' => '#fed7aa',
-                'hex_progress' => '#f97316'
-            ],
-            'low' => [
-                'text' => 'text-red-700',
-                'bg' => 'bg-red-50',
-                'border' => 'border-red-200',
-                'badge' => 'bg-red-100 text-red-800',
-                'progress' => 'bg-red-500',
-                'hex_text' => '#dc2626',
-                'hex_bg' => '#fef2f2',
-                'hex_border' => '#fecaca',
-                'hex_progress' => '#ef4444'
-            ]
-        ];
+        if (!$this->resultService->hasCompletedAllAssessments($user->id)) {
+            return response()->json(['error' => 'Assessments not yet completed.'], 422);
+        }
 
-        return $colors[$level] ?? $colors['average'];
-    }
+        $oceanResults          = $this->resultService->getOceanResults($user->id);
+        $riasecResults         = $this->resultService->getRiasecResults($user->id);
+        $cognitiveResults      = $this->resultService->getCognitiveResults($user->id);
+        $streamRecommendations = $this->resultService->getStreamRecommendations($oceanResults, $riasecResults, $cognitiveResults);
 
-    private function getPerformanceLevelText($percentage)
-    {
-        $text = match(true) {
-            $percentage >= 85 => 'Exceptional',
-            $percentage >= 70 => 'High',
-            $percentage >= 40 => 'Average',
-            $percentage >= 20 => 'Below Average',
-            default => 'Low',
-        };
-        return transContent($text);
-    }
+        $payload  = (new ResultTransformer)->transform($user, $oceanResults, $riasecResults, $cognitiveResults, $streamRecommendations);
+        $fileName = 'MetrixsMate-Results-' . str_replace(' ', '-', $user->name) . '-' . now()->format('Y-m-d') . '.json';
 
-    private function getOceanResults($userId)
-    {
-        // Get OCEAN domain results
-        $domains = UserResult::where('user_id', $userId)
-            ->where('assessment_type', 'ocean')
-            ->where('result_type', 'domain')
-            ->get()
-            ->map(function ($result) {
-                $level = $this->getPerformanceLevel($result->percentage);
-                $colors = $this->getPerformanceColors($level);
-                
-                return (object)[
-                    'name' => transContent($result->name),
-                    'name_en' => $result->name,
-                    'description' => $result->description,
-                    'percentage' => $result->percentage,
-                    'level_description' => $result->level_description,
-                    'actionable_insights' => $result->actionable_insights,
-                    'level' => $result->level,
-                    'performance_level' => $level,
-                    'performance_text' => $this->getPerformanceLevelText($result->percentage),
-                    'colors' => $colors
-                ];
-            });
-
-        // Get predictive insights
-        $predictiveInsights = UserResult::where('user_id', $userId)
-            ->where('assessment_type', 'ocean')
-            ->whereIn('result_type', [
-                'growth_potential', 
-                'organizational_fit_forecast', 
-                'leadership_potential', 
-                'innovation_index'
-            ])
-            ->get()
-            ->mapWithKeys(function($result) {
-                $level = $this->getPerformanceLevel($result->percentage);
-                $colors = $this->getPerformanceColors($level);
-                
-                $result->performance_level = $level;
-                $result->performance_text = $this->getPerformanceLevelText($result->percentage);
-                $result->colors = $colors;
-                
-                return [$result->result_type => $result];
-            });
-
-        // Get facets
-        $facets = UserResult::where('user_id', $userId)
-            ->where('assessment_type', 'ocean')
-            ->where('result_type', 'facet')
-            ->get()
-            ->map(function ($result) {
-                $level = $this->getPerformanceLevel($result->percentage);
-                $colors = $this->getPerformanceColors($level);
-                
-                $result->performance_level = $level;
-                $result->performance_text = $this->getPerformanceLevelText($result->percentage);
-                $result->colors = $colors;
-                
-                return $result;
-            });
-
-        // Get CCS skills
-        $ccsSkills = UserResult::where('user_id', $userId)
-            ->where('assessment_type', 'ocean')
-            ->where('result_type', 'ccs')
-            ->get()
-            ->map(function ($result) {
-                $level = $this->getPerformanceLevel($result->percentage);
-                $colors = $this->getPerformanceColors($level);
-                
-                $result->performance_level = $level;
-                $result->performance_text = $this->getPerformanceLevelText($result->percentage);
-                $result->colors = $colors;
-                
-                return $result;
-            });
-
-        return [
-            'domains' => $domains,
-            'predictive_insights' => $predictiveInsights,
-            'facets' => $facets,
-            'ccs_skills' => $ccsSkills
-        ];
-    }
-
-    private function getRiasecResults($userId)
-    {
-        // Get RIASEC domain results
-        $domains = UserResult::where('user_id', $userId)
-            ->where('assessment_type', 'riasec')
-            ->where('result_type', 'domain')
-            ->get()
-            ->map(function ($result) {
-                $level = $this->getPerformanceLevel($result->percentage);
-                $colors = $this->getPerformanceColors($level);
-                
-                return (object)[
-                    'name' => transContent($result->name),
-                    'name_en' => $result->name,
-                    'description' => $result->description,
-                    'percentage' => $result->percentage,
-                    'level_description' => $result->level_description,
-                    'actionable_insights' => $result->actionable_insights,
-                    'level' => $result->level,
-                    'performance_level' => $level,
-                    'performance_text' => $this->getPerformanceLevelText($result->percentage),
-                    'colors' => $colors
-                ];
-            });
-
-        // Get career analysis
-        $careerAnalysis = UserResult::where('user_id', $userId)
-            ->where('assessment_type', 'riasec')
-            ->where('result_type', 'career_analysis')
-            ->first();
-
-        // Get work environment preferences
-        $workEnvironment = UserResult::where('user_id', $userId)
-            ->where('assessment_type', 'riasec')
-            ->where('result_type', 'work_environment')
-            ->first();
-
-        // Generate Holland code from top 3 domains
-        $sortedDomains = $domains->sortByDesc('percentage')->take(3);
-        $hollandCode = $sortedDomains->map(function($domain) {
-            return strtoupper(substr($domain->name_en, 0, 1));
-        })->implode('');
-
-        return [
-            'domains' => $domains,
-            'career_analysis' => $careerAnalysis,
-            'work_environment' => $workEnvironment,
-            'holland_code' => $hollandCode,
-            'top_domains' => $sortedDomains
-        ];
-    }
-
-    private function getCognitiveResults($userId)
-    {
-        // Get cognitive domain results
-        $domains = UserResult::where('user_id', $userId)
-            ->where('assessment_type', 'cognitive')
-            ->where('result_type', 'domain')
-            ->get()
-            ->map(function ($result) {
-                $level = $this->getPerformanceLevel($result->percentage);
-                $colors = $this->getPerformanceColors($level);
-                
-                return (object)[
-                    'name' => transContent($result->name),
-                    'name_en' => $result->name,
-                    'description' => $result->description,
-                    'percentage' => $result->percentage,
-                    'level_description' => $result->level_description,
-                    'actionable_insights' => $result->actionable_insights,
-                    'level' => $result->level,
-                    'performance_level' => $level,
-                    'performance_text' => $this->getPerformanceLevelText($result->percentage),
-                    'colors' => $colors
-                ];
-            });
-
-        return [
-            'domains' => $domains,
-            'average_score' => $domains->avg('percentage')
-        ];
+        return response()->json($payload)
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
     }
 
     private function levelDescription($score)

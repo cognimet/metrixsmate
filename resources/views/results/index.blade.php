@@ -226,6 +226,44 @@
         </div>
     </div>
     @endif
+
+    {{-- Facets --}}
+    @if(isset($oceanResults['facets']) && $oceanResults['facets']->count() > 0)
+    <div class="p-6 border-t border-gray-100">
+        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Personality Facets</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            @foreach($oceanResults['facets'] as $facet)
+            <div class="rounded-xl border {{ $facet->colors['border'] }} {{ $facet->colors['bg'] }} p-3 text-center">
+                <p class="text-xs font-medium text-gray-700 mb-1">{{ $facet->name }}</p>
+                <p class="text-lg font-bold {{ $facet->colors['text'] }}">{{ round($facet->percentage) }}%</p>
+                <div class="w-full bg-gray-200/60 rounded-full h-1.5 mt-2">
+                    <div class="{{ $facet->colors['progress'] }} h-1.5 rounded-full" style="width:{{ $facet->percentage }}%"></div>
+                </div>
+                <span class="text-xs {{ $facet->colors['text'] }} mt-1 inline-block">{{ $facet->performance_text }}</span>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- CCS Skills --}}
+    @if(isset($oceanResults['ccs_skills']) && $oceanResults['ccs_skills']->count() > 0)
+    <div class="p-6 border-t border-gray-100">
+        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Core Character Strengths</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            @foreach($oceanResults['ccs_skills'] as $skill)
+            <div class="rounded-xl border {{ $skill->colors['border'] }} {{ $skill->colors['bg'] }} p-3 text-center">
+                <p class="text-xs font-medium text-gray-700 mb-1">{{ $skill->name }}</p>
+                <p class="text-lg font-bold {{ $skill->colors['text'] }}">{{ round($skill->percentage) }}%</p>
+                <div class="w-full bg-gray-200/60 rounded-full h-1.5 mt-2">
+                    <div class="{{ $skill->colors['progress'] }} h-1.5 rounded-full" style="width:{{ $skill->percentage }}%"></div>
+                </div>
+                <span class="text-xs {{ $skill->colors['text'] }} mt-1 inline-block">{{ $skill->performance_text }}</span>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 </div>
 
 {{-- RIASEC --}}
@@ -277,6 +315,75 @@
         @endif
     </div>
 </div>
+
+{{-- Stream Recommendations --}}
+@if(!empty($streamRecommendations))
+<div class="bg-white rounded-2xl shadow-card border border-gray-100 mb-8">
+    <div class="p-6 border-b border-gray-100">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Recommended Academic Streams</h2>
+                <p class="text-sm text-gray-500 mt-0.5">Based on your personality, interests, and cognitive profile</p>
+            </div>
+        </div>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            @foreach($streamRecommendations as $stream)
+            @php
+                $badgeClasses = match($stream['recommendation']) {
+                    'strongly_recommended' => 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+                    'recommended'          => 'bg-blue-100 text-blue-800 border border-blue-200',
+                    'suitable'             => 'bg-amber-100 text-amber-800 border border-amber-200',
+                    default                => 'bg-gray-100 text-gray-600 border border-gray-200',
+                };
+                $ringClass = $stream['recommendation'] === 'strongly_recommended'
+                    ? 'ring-2 ring-emerald-400 ring-offset-2'
+                    : '';
+                $colorMap = [
+                    'blue'   => ['border' => 'border-blue-200',   'bg' => 'bg-blue-50',   'text' => 'text-blue-700',   'badge_bg' => 'bg-blue-100',  'progress' => 'bg-blue-500'],
+                    'green'  => ['border' => 'border-green-200',  'bg' => 'bg-green-50',  'text' => 'text-green-700',  'badge_bg' => 'bg-green-100', 'progress' => 'bg-green-500'],
+                    'amber'  => ['border' => 'border-amber-200',  'bg' => 'bg-amber-50',  'text' => 'text-amber-700',  'badge_bg' => 'bg-amber-100', 'progress' => 'bg-amber-500'],
+                    'purple' => ['border' => 'border-purple-200', 'bg' => 'bg-purple-50', 'text' => 'text-purple-700', 'badge_bg' => 'bg-purple-100','progress' => 'bg-purple-500'],
+                    'orange' => ['border' => 'border-orange-200', 'bg' => 'bg-orange-50', 'text' => 'text-orange-700', 'badge_bg' => 'bg-orange-100','progress' => 'bg-orange-500'],
+                ];
+                $c = $colorMap[$stream['color']] ?? $colorMap['blue'];
+            @endphp
+            <div class="rounded-xl border {{ $c['border'] }} {{ $c['bg'] }} p-5 {{ $ringClass }} relative">
+                @if($stream['recommendation'] === 'strongly_recommended')
+                <div class="absolute -top-2 -right-2">
+                    <span class="inline-flex items-center gap-1 bg-emerald-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        Top Match
+                    </span>
+                </div>
+                @endif
+                <div class="flex items-start justify-between mb-3 pr-2">
+                    <h3 class="font-bold text-gray-900 text-base leading-tight">{{ $stream['name'] }}</h3>
+                    <span class="text-lg font-bold {{ $c['text'] }} ml-2 flex-shrink-0">{{ $stream['score'] }}%</span>
+                </div>
+                <p class="text-xs text-gray-500 mb-3 leading-relaxed">{{ $stream['description'] }}</p>
+                <div class="w-full bg-gray-200/60 rounded-full h-1.5 mb-3">
+                    <div class="{{ $c['progress'] }} h-1.5 rounded-full" style="width:{{ $stream['score'] }}%"></div>
+                </div>
+                <span class="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full {{ $badgeClasses }} mb-3">
+                    {{ $stream['recommendation_label'] }}
+                </span>
+                <div class="flex flex-wrap gap-1.5 mt-1">
+                    @foreach($stream['careers'] as $career)
+                    <span class="text-xs {{ $c['badge_bg'] }} {{ $c['text'] }} px-2 py-0.5 rounded-full border {{ $c['border'] }} font-medium">{{ $career }}</span>
+                    @endforeach
+                </div>
+            </div>
+            @endforeach
+        </div>
+        <p class="text-xs text-gray-400 mt-4 text-center">Stream fit scores are computed from your RIASEC career interests, OCEAN personality traits, and cognitive abilities.</p>
+    </div>
+</div>
+@endif
 
 {{-- Cognitive --}}
 <div class="bg-white rounded-2xl shadow-card border border-gray-100 mb-8">

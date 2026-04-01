@@ -53,8 +53,11 @@
                 <a href="{{ route('dashboard') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">{{ __('app.dashboard') }}</a>
                 <a href="{{ route('results.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('results.*') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">{{ __('app.my_results') }}</a>
                 <a href="{{ route('certificates.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('certificates.*') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">Certificate</a>
-                {{-- <a href="{{ route('school-finder.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('school-finder.*') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">School Finder</a> --}}
+                <a href="{{ route('school-finder.ai.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('school-finder.*') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">School Finder</a>
                 <a href="{{ route('payments.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('payments.*') ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">Payments</a>
+                @if(Auth::user()->isAdmin())
+                <a href="{{ route('admin.dashboard') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('admin.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }} transition">⚙️ Admin</a>
+                @endif
             </div>
 
             <div class="flex items-center gap-2">
@@ -79,6 +82,10 @@
                     </button>
                     <div x-show="userMenu" x-transition class="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
                         <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">{{ __('app.profile') }}</a>
+                        @if(Auth::user()->isAdmin())
+                        <hr class="my-1 border-gray-100">
+                        <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 font-medium">⚙️ Admin Panel</a>
+                        @endif
                         <hr class="my-1 border-gray-100">
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -100,8 +107,11 @@
         <a href="{{ route('dashboard') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('dashboard') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">{{ __('app.dashboard') }}</a>
         <a href="{{ route('results.index') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('results.*') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">{{ __('app.my_results') }}</a>
         <a href="{{ route('certificates.index') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('certificates.*') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">Certificate</a>
-        {{-- <a href="{{ route('school-finder.index') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('school-finder.*') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">School Finder</a> --}}
+        <a href="{{ route('school-finder.ai.index') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('school-finder.*') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">School Finder</a>
         <a href="{{ route('payments.index') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('payments.*') ? 'text-primary-700 bg-primary-50' : 'text-gray-600 hover:bg-gray-50' }}">Payments</a>
+        @if(Auth::user()->isAdmin())
+        <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2.5 text-sm font-medium {{ request()->routeIs('admin.*') ? 'text-blue-700 bg-blue-50' : 'text-gray-600 hover:bg-gray-50' }}">⚙️ Admin Panel</a>
+        @endif
     </div>
 </nav>
 

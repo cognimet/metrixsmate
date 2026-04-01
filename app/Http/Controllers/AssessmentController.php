@@ -859,11 +859,20 @@ class AssessmentController extends Controller
             );
         }
 
+        // Build answer lookup keyed by question ORDER (1-30) for facet/CCS mapping.
+        // $userAnswers is keyed by DB id (e.g. 61-90), but facet/CCS mappings reference
+        // sequential order numbers (1-30), so we must re-key before passing down.
+        $questionOrderMap = $quiz->domains->flatMap->questions->pluck('order', 'id');
+        $answersByOrder = $userAnswers->mapWithKeys(function ($answer, $qId) use ($questionOrderMap) {
+            $order = $questionOrderMap->get($qId);
+            return $order !== null ? [(int)$order => $answer] : [];
+        });
+
         // 2. Enhanced Facet-level analysis
-        $this->computeOceanFacets($userId, $userAnswers, $reverseQuestions);
+        $this->computeOceanFacets($userId, $answersByOrder, $reverseQuestions);
 
         // 3. Advanced CCS Skills mapping with career relevance
-        $this->computeAdvancedCcsSkills($userId, $userAnswers, $reverseQuestions);
+        $this->computeAdvancedCcsSkills($userId, $answersByOrder, $reverseQuestions);
 
         // 4. Predictive analytics and derived insights
         $this->computePredictiveInsights($userId, $domainPercentages, $reliabilityScores);
