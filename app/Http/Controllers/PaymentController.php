@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Coupon;
 use App\Models\Payment;
 use App\Models\Quiz;
 use App\Models\QuizAccess;
@@ -36,35 +37,77 @@ class PaymentController extends Controller
     public function initiate(Request $request)
     {
         $request->validate([
-            'amount' => 'required|numeric|min:1',
-            'type' => 'nullable|string|in:payment,tokens',
+            'amount'      => 'required|numeric|min:0',
+            'coupon_code' => 'nullable|string|max:50',
+            'type'        => 'nullable|string|in:payment,tokens',
             'description' => 'nullable|string|max:255',
         ]);
 
-        $user = Auth::user();
-        $orderId = 'MM-' . strtoupper(Str::random(8)) . '-' . time();
-        
-        $type = $request->input('type', 'payment');
+        $user        = Auth::user();
+        $orderId     = 'MM-' . strtoupper(Str::random(8)) . '-' . time();
+        $type        = $request->input('type', 'payment');
         $description = $request->input('description', 'MetrixsMate Assessment Payment');
 
+        $amount         = (float) $request->amount;
+        $originalAmount = $amount;
+        $couponId       = null;
+        $discountAmount = 0;
+        $coupon         = null;
+
+        // Apply coupon discount if provided
+        if ($request->filled('coupon_code')) {
+            $coupon = Coupon::where('code', strtoupper($request->coupon_code))->first();
+
+            if ($coupon && $coupon->isValid()) {
+                if ($coupon->discount_type === 'percentage') {
+                    $discountAmount = round($originalAmount * $coupon->discount_value / 100, 2);
+                } else {
+                    $discountAmount = min((float) $coupon->discount_value, $originalAmount);
+                }
+                $amount   = round($originalAmount - $discountAmount, 2);
+                $couponId = $coupon->id;
+            }
+        }
+
+        // If the coupon brings the price to zero, grant access immediately
+        if ($amount <= 0 && $type === 'payment') {
+            $quizzes = Quiz::all();
+            foreach ($quizzes as $quiz) {
+                QuizAccess::firstOrCreate(
+                    ['user_id' => $user->id, 'quiz_id' => $quiz->id],
+                    ['coupon_id' => $couponId, 'access_type' => 'coupon', 'granted_at' => now()]
+                );
+            }
+
+            if ($coupon) {
+                $coupon->use($user);
+            }
+
+            return redirect()->route('dashboard')
+                ->with('success', 'Your coupon covers the full amount! You now have access to all assessments.');
+        }
+
         $payment = Payment::create([
-            'user_id' => $user->id,
-            'order_id' => $orderId,
-            'amount' => $request->amount,
-            'currency' => 'INR',
-            'status' => 'pending',
+            'user_id'        => $user->id,
+            'order_id'       => $orderId,
+            'amount'         => $amount,
+            'currency'       => 'INR',
+            'status'         => 'pending',
             'payment_method' => 'upi',
-            'description' => $description,
-            'metadata' => [
-                'type' => $type,
-                'created_at' => now()->toIso8601String(),
+            'description'    => $description,
+            'metadata'       => [
+                'type'            => $type,
+                'coupon_id'       => $couponId,
+                'original_amount' => $originalAmount,
+                'discount_amount' => $discountAmount,
+                'created_at'      => now()->toIso8601String(),
             ],
         ]);
 
         // Generate UPI deep link
-        $upiId = config('services.upi.merchant_id', 'metrixsmate@upi');
+        $upiId       = config('services.upi.merchant_id', 'metrixsmate@upi');
         $merchantName = config('services.upi.merchant_name', 'MetrixsMate');
-        $upiLink = $this->generateUpiLink($upiId, $merchantName, $payment->amount, $orderId);
+        $upiLink     = $this->generateUpiLink($upiId, $merchantName, $payment->amount, $orderId);
 
         return view('payments.checkout', compact('payment', 'upiLink', 'upiId', 'merchantName'));
     }
@@ -101,9 +144,16 @@ class PaymentController extends Controller
         } else {
             // Grant access to all quizzes for regular assessment payment
             $quizzes = Quiz::all();
-            
             foreach ($quizzes as $quiz) {
                 QuizAccess::grantViaPayment($user, $quiz, $payment);
+            }
+
+            // Increment coupon usage if one was applied
+            if ($couponId = $payment->metadata['coupon_id'] ?? null) {
+                $coupon = Coupon::find($couponId);
+                if ($coupon) {
+                    $coupon->use($user);
+                }
             }
 
             return redirect()->route('payments.index')

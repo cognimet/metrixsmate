@@ -46,8 +46,14 @@
                 <div class="flex items-center justify-between mb-4">
                     <span class="text-sm font-semibold text-primary-700 bg-primary-100 px-3 py-1 rounded-full">Assessment Pack</span>
                     <div class="text-right">
-                        <span class="text-3xl font-bold text-gray-900">₹999</span>
-                        <span class="text-sm text-gray-500">/one-time</span>
+                        <div id="priceDisplay">
+                            <span class="text-3xl font-bold text-gray-900" id="finalPrice">₹999</span>
+                            <span class="text-sm text-gray-500">/one-time</span>
+                        </div>
+                        <div id="originalPriceRow" class="hidden mt-0.5">
+                            <span class="text-sm text-gray-400 line-through" id="originalPrice"></span>
+                            <span class="text-xs font-semibold text-green-600 ml-1" id="discountBadge"></span>
+                        </div>
                     </div>
                 </div>
                 <ul class="space-y-2.5">
@@ -74,14 +80,118 @@
                 </ul>
             </div>
 
-            <form method="POST" action="{{ route('payments.initiate') }}">
+            {{-- Coupon Input --}}
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Have a coupon code?</label>
+                <div class="flex gap-2">
+                    <input type="text" id="couponInput" placeholder="Enter coupon code"
+                           class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm uppercase tracking-wider focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                           autocomplete="off" oninput="this.value=this.value.toUpperCase()">
+                    <button type="button" onclick="applyCoupon()"
+                            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition whitespace-nowrap">
+                        Apply
+                    </button>
+                    <button type="button" id="removeCouponBtn" onclick="removeCoupon()"
+                            class="hidden px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-semibold rounded-xl transition">
+                        ✕
+                    </button>
+                </div>
+                <div id="couponFeedback" class="hidden mt-2 text-sm px-3 py-2 rounded-lg"></div>
+            </div>
+
+            <form method="POST" action="{{ route('payments.initiate') }}" id="paymentForm">
                 @csrf
-                <input type="hidden" name="amount" value="999">
-                <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl font-semibold text-sm hover:from-primary-700 hover:to-primary-800 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2">
+                <input type="hidden" name="amount" id="paymentAmount" value="999">
+                <input type="hidden" name="coupon_code" id="paymentCoupon" value="">
+                <button type="submit" id="payBtn" class="w-full py-3.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl font-semibold text-sm hover:from-primary-700 hover:to-primary-800 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                    Pay ₹999 via UPI
+                    Pay <span id="payButtonAmount">₹999</span> via UPI
                 </button>
             </form>
+
+@push('scripts')
+<script>
+const BASE_PRICE = 999;
+
+// Pre-fill coupon from URL ?coupon=CODE
+(function () {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('coupon');
+    if (code) {
+        document.getElementById('couponInput').value = code.toUpperCase();
+        applyCoupon();
+    }
+})();
+
+async function applyCoupon() {
+    const code = document.getElementById('couponInput').value.trim();
+    const feedback = document.getElementById('couponFeedback');
+
+    if (!code) return;
+
+    feedback.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-gray-50 text-gray-500';
+    feedback.textContent = 'Checking…';
+    feedback.classList.remove('hidden');
+
+    try {
+        const res = await fetch('{{ route("coupons.apply") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ code, amount: BASE_PRICE }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            // Apply discount to UI
+            document.getElementById('finalPrice').textContent = '₹' + Math.round(data.discounted_price);
+            document.getElementById('originalPrice').textContent = '₹' + Math.round(data.original_price);
+            document.getElementById('discountBadge').textContent = data.discount_label;
+            document.getElementById('originalPriceRow').classList.remove('hidden');
+
+            document.getElementById('paymentAmount').value = data.discounted_price;
+            document.getElementById('paymentCoupon').value = data.coupon_code;
+
+            if (data.discounted_price <= 0) {
+                document.getElementById('payBtn').innerHTML =
+                    '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Get Free Access';
+            } else {
+                document.getElementById('payButtonAmount').textContent = '₹' + Math.round(data.discounted_price);
+            }
+
+            feedback.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-green-50 text-green-700 border border-green-200';
+            feedback.textContent = data.message;
+
+            document.getElementById('couponInput').readOnly = true;
+            document.getElementById('removeCouponBtn').classList.remove('hidden');
+        } else {
+            feedback.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200';
+            feedback.textContent = data.message;
+        }
+    } catch {
+        feedback.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200';
+        feedback.textContent = 'Something went wrong. Please try again.';
+    }
+}
+
+function removeCoupon() {
+    document.getElementById('couponInput').value = '';
+    document.getElementById('couponInput').readOnly = false;
+    document.getElementById('couponFeedback').classList.add('hidden');
+    document.getElementById('removeCouponBtn').classList.add('hidden');
+    document.getElementById('originalPriceRow').classList.add('hidden');
+    document.getElementById('finalPrice').textContent = '₹' + BASE_PRICE;
+    document.getElementById('paymentAmount').value = BASE_PRICE;
+    document.getElementById('payBtn').innerHTML =
+        '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg> Pay <span id="payButtonAmount">₹' + BASE_PRICE + '</span> via UPI';
+    document.getElementById('paymentCoupon').value = '';
+}
+</script>
+@endpush
         </div>
     </div>
     @endif

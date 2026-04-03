@@ -3,7 +3,7 @@
     <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
         <h2 class="text-2xl font-bold mb-4">Have a Coupon Code?</h2>
         <p class="text-gray-600 mb-6">
-            If you have a coupon code, you can use it to unlock access to all assessments for free.
+            Enter your coupon code below to get a discount on your payment.
         </p>
 
         <form id="couponForm" class="space-y-4">
@@ -18,8 +18,9 @@
                     id="couponCode"
                     name="code"
                     placeholder="Enter coupon code"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase tracking-wider"
                     autocomplete="off"
+                    oninput="this.value=this.value.toUpperCase()"
                     required
                 >
             </div>
@@ -50,11 +51,10 @@
 document.getElementById('couponForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const code = document.getElementById('couponCode').value;
-    const errorDiv = document.getElementById('couponError');
+    const code = document.getElementById('couponCode').value.trim();
+    const errorDiv   = document.getElementById('couponError');
     const successDiv = document.getElementById('couponSuccess');
 
-    // Clear messages
     errorDiv.classList.add('hidden');
     successDiv.classList.add('hidden');
 
@@ -64,21 +64,20 @@ document.getElementById('couponForm').addEventListener('submit', async (e) => {
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json',
             },
-            body: JSON.stringify({ code }),
+            body: JSON.stringify({ code, amount: 999 }),
         });
 
         const data = await response.json();
 
         if (data.success) {
-            successDiv.textContent = data.message;
+            successDiv.textContent = data.message + ' Redirecting to payment…';
             successDiv.classList.remove('hidden');
-            
+
             setTimeout(() => {
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                }
-            }, 1500);
+                window.location.href = '{{ route("payments.index") }}?coupon=' + encodeURIComponent(data.coupon_code);
+            }, 1200);
         } else {
             errorDiv.textContent = data.message;
             errorDiv.classList.remove('hidden');
