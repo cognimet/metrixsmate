@@ -29,7 +29,7 @@ class Coupon extends Model
     public function isValid(): bool
     {
         // Check if all uses exhausted (null max_uses = unlimited)
-        if ($this->max_uses !== null && $this->times_used >= $this->max_uses) {
+        if ($this->max_uses !== null && $this->usage_count >= $this->max_uses) {
             return false;
         }
 
@@ -43,7 +43,7 @@ class Coupon extends Model
     }
 
     /**
-     * Use the coupon — increments times_used; marks as exhausted when max_uses reached
+     * Use the coupon — increments usage_count; marks as exhausted when max_uses reached
      */
     public function use(User $user): bool
     {
@@ -51,8 +51,8 @@ class Coupon extends Model
             return false;
         }
 
-        $newCount = $this->times_used + 1;
-        $updates  = ['times_used' => $newCount];
+        $newCount = $this->usage_count + 1;
+        $updates  = ['usage_count' => $newCount];
 
         // Only mark as fully used when limited supply is exhausted
         if ($this->max_uses !== null && $newCount >= $this->max_uses) {
@@ -74,7 +74,7 @@ class Coupon extends Model
             ->where(function ($q) {
                 // Allow unlimited coupons (null max_uses) or ones not yet exhausted
                 $q->whereNull('max_uses')
-                    ->orWhereRaw('times_used < max_uses');
+                    ->orWhereRaw('usage_count < max_uses');
             })
             ->where(function ($q) {
                 $q->whereNull('expires_at')
