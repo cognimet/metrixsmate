@@ -1,19 +1,18 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 @section('title', 'Edit User - ' . $user->name)
+@section('page-title', 'Edit User')
+@section('page-description', $user->name)
+
+@section('page-actions')
+    <a href="{{ route('admin.users.show', $user) }}" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition">← Back</a>
+@endsection
 
 @section('content')
-<div class="min-h-screen bg-gray-100 p-6">
-    <div class="max-w-2xl mx-auto">
-        
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-900">Edit User</h1>
-            <a href="{{ route('admin.users.show', $user) }}" class="text-blue-600 hover:text-blue-800">← Back</a>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
+<div class="max-w-2xl">
+        <div class="bg-white rounded-xl border border-gray-100 p-6">
             <form action="{{ route('admin.users.update', $user) }}" method="POST" class="space-y-6">
                 @csrf
-                @method('PUT')
+                @method('PATCH')
 
                 {{-- Basic Info --}}
                 <div>
@@ -96,12 +95,10 @@
 
                 {{-- Submit --}}
                 <div class="border-t border-gray-200 pt-6 flex gap-3">
-                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Changes</button>
-                    <a href="{{ route('admin.users.show', $user) }}" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">Cancel</a>
+                    <button type="submit" class="px-6 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition">Save Changes</button>
+                    <a href="{{ route('admin.users.show', $user) }}" class="px-6 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition">Cancel</a>
                 </div>
             </form>
         </div>
-
-    </div>
 </div>
 @endsection

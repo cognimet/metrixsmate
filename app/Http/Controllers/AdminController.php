@@ -13,11 +13,15 @@ use App\Models\RecommendationFeedbackLog;
 use App\Models\Certificate;
 use Illuminate\Support\Facades\DB;
 use App\Services\ResultService;
+use App\Services\AdminReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class AdminController extends Controller
 {
-    public function __construct(protected ResultService $resultService) {}
+    public function __construct(
+        protected ResultService $resultService,
+        protected AdminReportService $adminReportService,
+    ) {}
 
     /**
      * Admin Dashboard - Overview stats
@@ -35,7 +39,10 @@ class AdminController extends Controller
             'total_coupons' => Coupon::count(),
             'active_coupons' => Coupon::where('is_active', true)->count(),
             'total_certificates' => Certificate::count(),
-            'assessments_taken' => UserResult::count(),
+            'assessments_taken' => UserResult::distinct()->count(DB::raw("CONCAT(user_id, '-', assessment_type)")),
+            'ocean_completed' => UserResult::where('assessment_type', 'ocean')->distinct('user_id')->count('user_id'),
+            'riasec_completed' => UserResult::where('assessment_type', 'riasec')->distinct('user_id')->count('user_id'),
+            'cognitive_completed' => UserResult::where('assessment_type', 'cognitive')->distinct('user_id')->count('user_id'),
         ];
 
         // Recent payments
@@ -45,11 +52,28 @@ class AdminController extends Controller
             ->limit(10)
             ->get();
 
-        // Recent assessments
-        $recentAssessments = UserResult::with('user')
-            ->orderByDesc('created_at')
+        // Recent assessment completions - one row per user showing which assessments they've done
+        $recentUserIds = UserResult::select('user_id', DB::raw('MAX(created_at) as last_at'))
+            ->groupBy('user_id')
+            ->orderByDesc('last_at')
             ->limit(10)
-            ->get();
+            ->pluck('user_id');
+
+        $recentAssessments = User::whereIn('id', $recentUserIds)
+            ->get()
+            ->sortBy(fn ($u) => array_search($u->id, $recentUserIds->toArray()))
+            ->map(function ($user) {
+                $completed = UserResult::where('user_id', $user->id)
+                    ->select('assessment_type')
+                    ->distinct()
+                    ->pluck('assessment_type')
+                    ->toArray();
+                $user->ocean_done = in_array('ocean', $completed);
+                $user->riasec_done = in_array('riasec', $completed);
+                $user->cognitive_done = in_array('cognitive', $completed);
+                $user->last_assessment_at = UserResult::where('user_id', $user->id)->max('created_at');
+                return $user;
+            });
 
         // User growth (last 7 days)
         $userGrowth = User::selectRaw('DATE(created_at) as date, COUNT(*) as count')
@@ -99,7 +123,7 @@ class AdminController extends Controller
             $query->where('is_active', $status);
         }
 
-        $users = $query->orderByDesc('created_at')->paginate(20);
+        $users = $query->orderByDesc('created_at')->paginate(5);
 
         return view('admin.users.index', compact('users'));
     }
@@ -129,10 +153,18 @@ class AdminController extends Controller
             ->limit(10)
             ->get();
 
+        // Learning styles & stream recommendations
+        $learningStyles = $oceanResults['domains']->isNotEmpty()
+            ? $this->resultService->getLearningStyles($oceanResults['domains'])
+            : [];
+        $streamRecommendations = ($oceanResults['domains']->isNotEmpty() && $riasecResults['domains']->isNotEmpty() && $cognitiveResults['domains']->isNotEmpty())
+            ? $this->resultService->getStreamRecommendations($oceanResults, $riasecResults, $cognitiveResults)
+            : [];
+
         return view('admin.users.show', compact(
             'user', 'oceanResults', 'riasecResults', 'cognitiveResults',
             'latestOceanResult', 'latestRiasecResult', 'latestCognitiveResult',
-            'recommendations'
+            'recommendations', 'learningStyles', 'streamRecommendations'
         ));
     }
 
@@ -169,7 +201,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Delete user (soft/hard)
+     * Delete user and all related data.
      */
     public function userDelete(User $user)
     {
@@ -177,10 +209,73 @@ class AdminController extends Controller
             return back()->with('error', 'Cannot delete your own account.');
         }
 
+        $this->deleteUserData($user->id);
         $user->delete();
 
         return redirect()->route('admin.users')
-            ->with('success', 'User deleted successfully.');
+            ->with('success', 'User and all related data deleted successfully.');
+    }
+
+    /**
+     * Bulk delete users and all related data.
+     */
+    public function userBulkDelete(Request $request)
+    {
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return back()->with('error', 'No users selected.');
+        }
+
+        // Prevent deleting own account
+        $ids = array_values(array_filter($ids, fn ($id) => (int) $id !== auth()->id()));
+
+        foreach ($ids as $id) {
+            $this->deleteUserData($id);
+        }
+
+        $count = User::whereIn('id', $ids)->delete();
+
+        return back()->with('success', "{$count} user(s) and all related data deleted successfully.");
+    }
+
+    /**
+     * Delete all data associated with a user ID.
+     */
+    private function deleteUserData(int $userId): void
+    {
+        UserResult::where('user_id', $userId)->delete();
+        SchoolRecommendation::where('user_id', $userId)->delete();
+        RecommendationFeedbackLog::where('user_id', $userId)->delete();
+        Certificate::where('user_id', $userId)->delete();
+        Payment::where('user_id', $userId)->delete();
+    }
+
+    /**
+     * School results detail page for a user.
+     */
+    public function userSchoolDetail(User $user)
+    {
+        $data = $this->adminReportService->buildIndividualSchoolReport($user);
+        return view('admin.users.school', $data);
+    }
+
+    /**
+     * University results detail page for a user.
+     */
+    public function userUniversityDetail(User $user)
+    {
+        $data = $this->adminReportService->buildIndividualUniversityReport($user);
+        return view('admin.users.university', $data);
+    }
+
+    /**
+     * Company results detail page for a user.
+     */
+    public function userCompanyDetail(User $user)
+    {
+        $data = $this->adminReportService->buildIndividualCompanyReport($user);
+        return view('admin.users.company', $data);
     }
 
     /**
@@ -358,6 +453,19 @@ class AdminController extends Controller
     }
 
     /**
+     * Show coupon detail with usage history
+     */
+    public function couponShow(Coupon $coupon)
+    {
+        $usages = \App\Models\QuizAccess::where('coupon_id', $coupon->id)
+            ->with(['user', 'quiz'])
+            ->orderByDesc('granted_at')
+            ->get();
+
+        return view('admin.coupons.show', compact('coupon', 'usages'));
+    }
+
+    /**
      * Delete coupon
      */
     public function couponDelete(Coupon $coupon)
@@ -375,21 +483,15 @@ class AdminController extends Controller
     {
         // Key metrics
         $stats = [
-            'total_users' => User::count(),
-            'user_growth' => User::where('created_at', '>=', now()->subDays(7))->count(),
-            'total_revenue' => Payment::where('status', 'completed')->sum('amount'),
-            'total_payments' => Payment::where('status', 'completed')->count(),
-            'total_assessments' => UserResult::count(),
-            'total_recommendations' => SchoolRecommendation::count(),
-            'ocean_assessments' => UserResult::where('quiz_id', function($q) {
-                $q->select('id')->from('quizzes')->where('type', 'ocean');
-            })->count(),
-            'riasec_assessments' => UserResult::where('quiz_id', function($q) {
-                $q->select('id')->from('quizzes')->where('type', 'riasec');
-            })->count(),
-            'cognitive_assessments' => UserResult::where('quiz_id', function($q) {
-                $q->select('id')->from('quizzes')->where('type', 'cognitive');
-            })->count(),
+            'total_users'          => User::count(),
+            'user_growth'          => User::where('created_at', '>=', now()->subDays(7))->count(),
+            'total_revenue'        => Payment::where('status', 'completed')->sum('amount'),
+            'total_payments'       => Payment::where('status', 'completed')->count(),
+            'total_assessments'    => UserResult::distinct()->count(DB::raw("CONCAT(user_id, '-', assessment_type)")),
+            'total_recommendations'=> SchoolRecommendation::count(),
+            'ocean_assessments'    => UserResult::where('assessment_type', 'ocean')->distinct('user_id')->count('user_id'),
+            'riasec_assessments'   => UserResult::where('assessment_type', 'riasec')->distinct('user_id')->count('user_id'),
+            'cognitive_assessments'=> UserResult::where('assessment_type', 'cognitive')->distinct('user_id')->count('user_id'),
         ];
 
         // User growth (last 7 days)
@@ -413,9 +515,9 @@ class AdminController extends Controller
         $stats['revenue_growth_data'] = $revenueGrowthData;
 
         // Top schools
-        $topSchools = SchoolRecommendation::selectRaw('school_id, schools.school_name as name, COUNT(*) as recommendations')
-            ->join('schools', 'school_recommendations.school_id', '=', 'schools.id')
-            ->groupBy('school_id', 'schools.school_name')
+        $topSchools = SchoolRecommendation::selectRaw('dynamic_school_id, dynamic_schools.name as name, COUNT(*) as recommendations')
+            ->join('dynamic_schools', 'school_recommendations.dynamic_school_id', '=', 'dynamic_schools.id')
+            ->groupBy('dynamic_school_id', 'dynamic_schools.name')
             ->orderByDesc('recommendations')
             ->limit(5)
             ->get()
@@ -440,13 +542,14 @@ class AdminController extends Controller
      */
     public function results(Request $request)
     {
-        $query = UserResult::with('user')->query();
+        $query = UserResult::query()->with('user');
 
         // Search by user email or name
         if ($request->search) {
-            $query->whereHas('user', function($q) {
-                $q->where('name', 'like', "%{$request->search}%")
-                    ->orWhere('email', 'like', "%{$request->search}%");
+            $search = $request->search;
+            $query->whereHas('user', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -455,15 +558,16 @@ class AdminController extends Controller
             $query->where('assessment_type', $request->quiz_type);
         }
 
-        $results = $query->orderByDesc('created_at')->paginate(25);
+        $results = $query->orderByDesc('created_at')->paginate(20);
 
-        // Stats for results
+        // Stats for results — counts distinct users who completed each assessment type
         $stats = [
-            'total_assessments' => UserResult::count(),
-            'ocean_assessments' => UserResult::where('assessment_type', 'ocean')->count(),
-            'riasec_assessments' => UserResult::where('assessment_type', 'riasec')->count(),
-            'cognitive_assessments' => UserResult::where('assessment_type', 'cognitive')->count(),
-            'avg_score' => UserResult::avg('percentage') ?? 0,
+            'total_assessments'    => UserResult::distinct()->count(DB::raw("CONCAT(user_id, '-', assessment_type)")),
+            'ocean_assessments'    => UserResult::where('assessment_type', 'ocean')->distinct('user_id')->count('user_id'),
+            'riasec_assessments'   => UserResult::where('assessment_type', 'riasec')->distinct('user_id')->count('user_id'),
+            'cognitive_assessments'=> UserResult::where('assessment_type', 'cognitive')->distinct('user_id')->count('user_id'),
+            'avg_score'            => UserResult::avg('percentage') ?? 0,
+            'coupon_uses'          => Coupon::sum('usage_count') ?? 0,
         ];
 
         return view('admin.results.index', compact('results', 'stats'));
@@ -544,13 +648,13 @@ class AdminController extends Controller
                 ->count(),
         ];
 
-        // Assessment statistics
+        // Assessment statistics — completed (distinct users per type)
         $assessmentStats = [
-            'total_assessments' => UserResult::count(),
-            'ocean_assessments' => UserResult::where('assessment_type', 'ocean')->count(),
-            'riasec_assessments' => UserResult::where('assessment_type', 'riasec')->count(),
-            'cognitive_assessments' => UserResult::where('assessment_type', 'cognitive')->count(),
-            'avg_score' => UserResult::avg('percentage') ?? 0,
+            'total_assessments'    => UserResult::distinct()->count(DB::raw("CONCAT(user_id, '-', assessment_type)")),
+            'ocean_assessments'    => UserResult::where('assessment_type', 'ocean')->distinct('user_id')->count('user_id'),
+            'riasec_assessments'   => UserResult::where('assessment_type', 'riasec')->distinct('user_id')->count('user_id'),
+            'cognitive_assessments'=> UserResult::where('assessment_type', 'cognitive')->distinct('user_id')->count('user_id'),
+            'avg_score'            => UserResult::avg('percentage') ?? 0,
         ];
 
         // Payment statistics
@@ -592,11 +696,11 @@ class AdminController extends Controller
             $revenueGrowthData[$date->format('M d')] = $total;
         }
 
-        // Assessment completion data (by type)
+        // Assessment completion data — distinct users who completed each type
         $assessmentTypeData = [
-            'ocean' => UserResult::where('assessment_type', 'ocean')->count(),
-            'riasec' => UserResult::where('assessment_type', 'riasec')->count(),
-            'cognitive' => UserResult::where('assessment_type', 'cognitive')->count(),
+            'ocean'     => UserResult::where('assessment_type', 'ocean')->distinct('user_id')->count('user_id'),
+            'riasec'    => UserResult::where('assessment_type', 'riasec')->distinct('user_id')->count('user_id'),
+            'cognitive' => UserResult::where('assessment_type', 'cognitive')->distinct('user_id')->count('user_id'),
         ];
 
         // Top schools recommended

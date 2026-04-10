@@ -10,6 +10,7 @@ use App\Http\Controllers\SchoolFinderController;
 use App\Http\Controllers\CouponController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminReportController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -82,7 +83,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Admin Routes
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin', 'throttle:120,1'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
@@ -92,6 +93,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users/{user}/edit', [AdminController::class, 'userEdit'])->name('users.edit');
     Route::patch('/users/{user}', [AdminController::class, 'userUpdate'])->name('users.update');
     Route::delete('/users/{user}', [AdminController::class, 'userDelete'])->name('users.delete');
+    Route::delete('/users', [AdminController::class, 'userBulkDelete'])->name('users.bulk-delete');
+
+    // Individual user report downloads
+    Route::get('/users/{user}/report/school', [AdminReportController::class, 'userSchoolReport'])->name('users.report.school');
+    Route::get('/users/{user}/report/university', [AdminReportController::class, 'userUniversityReport'])->name('users.report.university');
+    Route::get('/users/{user}/report/company', [AdminReportController::class, 'userCompanyReport'])->name('users.report.company');
+
+    // Individual user categorized detail pages
+    Route::get('/users/{user}/school', [AdminController::class, 'userSchoolDetail'])->name('users.school');
+    Route::get('/users/{user}/university', [AdminController::class, 'userUniversityDetail'])->name('users.university');
+    Route::get('/users/{user}/company', [AdminController::class, 'userCompanyDetail'])->name('users.company');
 
     // Payment Management
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
@@ -102,6 +114,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/coupons', [AdminController::class, 'coupons'])->name('coupons');
     Route::get('/coupons/create', [AdminController::class, 'couponCreate'])->name('coupons.create');
     Route::post('/coupons', [AdminController::class, 'couponStore'])->name('coupons.store');
+    Route::get('/coupons/{coupon}', [AdminController::class, 'couponShow'])->name('coupons.show');
     Route::get('/coupons/{coupon}/edit', [AdminController::class, 'couponEdit'])->name('coupons.edit');
     Route::patch('/coupons/{coupon}', [AdminController::class, 'couponUpdate'])->name('coupons.update');
     Route::delete('/coupons/{coupon}', [AdminController::class, 'couponDelete'])->name('coupons.delete');
@@ -117,6 +130,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     // Analytics
     Route::get('/analytics', [AdminController::class, 'analytics'])->name('analytics');
+
+    // Downloadable Reports (School / University / Company)
+    Route::get('/reports/generate', [AdminReportController::class, 'index'])->name('reports.generate');
+    Route::post('/reports/school', [AdminReportController::class, 'schoolReport'])->name('reports.school');
+    Route::post('/reports/university', [AdminReportController::class, 'universityReport'])->name('reports.university');
+    Route::post('/reports/company', [AdminReportController::class, 'companyReport'])->name('reports.company');
 });
 
 require __DIR__.'/auth.php';

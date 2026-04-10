@@ -1,23 +1,14 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 @section('title', strtoupper($assessmentType) . ' Results - ' . $result->user->name)
+@section('page-title', strtoupper($assessmentType) . ' Assessment')
+@section('page-description', $result->user->name . ' — ' . $result->created_at->format('M d, Y'))
 
-@section('header')
-<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ strtoupper($assessmentType) }} — Assessment Results</h1>
-        <p class="mt-1 text-sm text-gray-500">{{ $result->user->name }} • {{ $result->created_at->format('M d, Y') }}</p>
-    </div>
-    <div class="flex gap-2">
-        <a href="{{ route('admin.assessments.download', $result) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            Download Report
-        </a>
-        <a href="{{ route('admin.users.show', $result->user) }}" class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 hover:border-gray-300 text-gray-700 text-sm font-semibold rounded-xl transition-colors bg-white">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            Back to User
-        </a>
-    </div>
-</div>
+@section('page-actions')
+    <a href="{{ route('admin.assessments.download', $result) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Download PDF
+    </a>
+    <a href="{{ route('admin.users.show', $result->user) }}" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition">← Back to User</a>
 @endsection
 
 @section('content')
