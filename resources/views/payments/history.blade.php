@@ -38,6 +38,7 @@
         {{-- Rows --}}
         <div class="divide-y divide-gray-50">
             @foreach($payments as $payment)
+            @php $currencySymbol = strtoupper($payment->currency) === 'USD' ? '$' : '₹'; @endphp
             <div class="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-gray-50/50 transition">
                 <div class="col-span-3">
                     <p class="text-sm font-medium text-gray-900">{{ $payment->order_id }}</p>
@@ -50,11 +51,11 @@
                     <p class="text-xs text-gray-400">{{ $payment->created_at->format('h:i A') }}</p>
                 </div>
                 <div class="col-span-2">
-                    <p class="text-sm font-bold text-gray-900">₹{{ number_format($payment->amount, 2) }}</p>
+                    <p class="text-sm font-bold text-gray-900">{{ $currencySymbol }}{{ number_format($payment->amount, 2) }}</p>
                 </div>
                 <div class="col-span-2">
                     <span class="inline-flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
-                        {{ strtoupper($payment->payment_method ?? 'UPI') }}
+                        {{ strtoupper($payment->payment_method ?? 'N/A') }}
                     </span>
                 </div>
                 <div class="col-span-3">

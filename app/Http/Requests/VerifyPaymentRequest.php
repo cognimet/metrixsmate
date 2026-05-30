@@ -13,7 +13,14 @@ class VerifyPaymentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $payment = Payment::find($this->route('payment'));
+        $routePayment = $this->route('payment');
+
+        if ($routePayment instanceof Payment) {
+            return $routePayment->user_id === auth()->id();
+        }
+
+        $payment = Payment::find($routePayment);
+
         return $payment && $payment->user_id === auth()->id();
     }
 
@@ -22,19 +29,22 @@ class VerifyPaymentRequest extends FormRequest
      */
     public function rules(): array
     {
-        $paymentId = $this->route('payment');
+        $routePayment = $this->route('payment');
+        $paymentId = $routePayment instanceof Payment ? $routePayment->id : $routePayment;
         
         return [
             'transaction_id' => [
                 'required',
                 'string',
                 'min:6',
-                'max:50',
-                'regex:/^[a-zA-Z0-9]{6,50}$/',
+                'max:100',
+                'regex:/^[a-zA-Z0-9._-]{6,100}$/',
                 Rule::unique('payments', 'transaction_id')
                     ->ignore($paymentId),
             ],
-            'upi_id' => 'nullable|string|max:100|regex:/^[a-zA-Z0-9._-]+@[a-zA-Z]{3,}$/',
+            'razorpay_order_id' => 'nullable|string|max:120',
+            'razorpay_payment_id' => 'nullable|string|max:120',
+            'razorpay_signature' => 'nullable|string|max:255',
         ];
     }
 
@@ -46,10 +56,9 @@ class VerifyPaymentRequest extends FormRequest
         return [
             'transaction_id.required' => 'Transaction ID is required.',
             'transaction_id.min' => 'Transaction ID must be at least 6 characters.',
-            'transaction_id.max' => 'Transaction ID cannot exceed 50 characters.',
-            'transaction_id.regex' => 'Transaction ID must contain only alphanumeric characters (a-z, A-Z, 0-9).',
+            'transaction_id.max' => 'Transaction ID cannot exceed 100 characters.',
+            'transaction_id.regex' => 'Transaction ID may only include letters, numbers, dots, underscores, and hyphens.',
             'transaction_id.unique' => 'This transaction ID has already been used for another payment. Please verify the correct transaction ID.',
-            'upi_id.regex' => 'UPI ID format is invalid. Example: yourname@upi',
         ];
     }
 }

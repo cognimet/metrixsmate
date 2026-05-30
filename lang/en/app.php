@@ -55,12 +55,12 @@ return [
     'welcome_faq_1_q'         => 'Are the assessments scientifically valid?',
     'welcome_faq_1_a'         => 'Yes. All our assessments are based on globally recognised and validated psychological models — OCEAN (Big Five), RIASEC (Holland), and standardised cognitive batteries.',
     'welcome_faq_2_q'         => 'How long does each test take?',
-    'welcome_faq_2_a'         => 'Each assessment takes 10–20 minutes depending on your pace. You can complete them at your convenience.',
+    'welcome_faq_2_a'         => 'Each assessment takes 1–5 minutes depending on your pace. You can complete them at your convenience.',
     'welcome_faq_3_q'         => 'Will I receive a detailed report?',
     'welcome_faq_3_a'         => 'Absolutely. You\'ll get a comprehensive report with domain scores, predictive insights, career recommendations, and a personalised development plan.',
     'welcome_cta_bottom'      => 'Ready to Discover Yourself?',
     'welcome_cta_bottom_desc' => 'Join thousands who have taken their first step toward self-discovery and career clarity.',
-    'welcome_cta_bottom_btn'  => 'Get Started Free',
+    'welcome_cta_bottom_btn'  => 'Get Started',
 
     // ─── Auth ─────────────────────────────────────────────────────────
     'auth_login_title'       => 'Welcome Back!',

@@ -42,9 +42,26 @@ return [
         'places_api_key' => env('GOOGLE_PLACES_API_KEY'),
     ],
 
-    'upi' => [
-        'merchant_id' => env('UPI_MERCHANT_ID', 'metrixsmate@upi'),
-        'merchant_name' => env('UPI_MERCHANT_NAME', 'MetrixsMate'),
+    // Legacy UPI configuration has been disabled in favor of PayPal and Razorpay.
+    // 'upi' => [
+    //     'merchant_id' => env('UPI_MERCHANT_ID', 'metrixsmate@upi'),
+    //     'merchant_name' => env('UPI_MERCHANT_NAME', 'MetrixsMate'),
+    // ],
+
+    'paypal' => [
+        'client_id' => env('PAYPAL_CLIENT_ID'),
+        'client_secret' => env('PAYPAL_CLIENT_SECRET'),
+        'mode' => env('PAYPAL_MODE', 'sandbox'),
+        'currency' => env('PAYPAL_CURRENCY', 'USD'),
+        'webhook_id' => env('PAYPAL_WEBHOOK_ID'),
+        'return_url' => env('PAYPAL_RETURN_URL', env('APP_URL') . '/payments'),
+        'cancel_url' => env('PAYPAL_CANCEL_URL', env('APP_URL') . '/payments'),
+    ],
+
+    'razorpay' => [
+        'key_id' => env('RAZORPAY_KEY_ID'),
+        'key_secret' => env('RAZORPAY_KEY_SECRET'),
+        'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
     ],
 
     'groq' => [

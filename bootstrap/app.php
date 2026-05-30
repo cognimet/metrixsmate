@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetLocale::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/razorpay',
+            'webhooks/paypal',
+        ]);
+
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);

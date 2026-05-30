@@ -41,14 +41,14 @@ class CouponController extends Controller
             ], 400);
         }
 
-        $originalPrice = (float) ($request->amount ?? 999);
+        $originalPrice = (float) ($request->amount ?? 15);
 
         if ($coupon->discount_type === 'percentage') {
             $discountAmount  = round($originalPrice * $coupon->discount_value / 100, 2);
             $discountLabel   = $coupon->discount_value . '% off';
         } else {
             $discountAmount  = min((float) $coupon->discount_value, $originalPrice);
-            $discountLabel   = '₹' . number_format($coupon->discount_value, 0) . ' off';
+            $discountLabel   = '$' . number_format($coupon->discount_value, 2) . ' off';
         }
 
         $discountedPrice = round($originalPrice - $discountAmount, 2);
@@ -62,7 +62,7 @@ class CouponController extends Controller
             'discount_amount'  => $discountAmount,
             'discounted_price' => $discountedPrice,
             'discount_label'   => $discountLabel,
-            'message'          => "Coupon applied! {$discountLabel}. New total: ₹" . number_format($discountedPrice, 0),
+            'message'          => "Coupon applied! {$discountLabel}. New total: $" . number_format($discountedPrice, 2),
         ]);
     }
 

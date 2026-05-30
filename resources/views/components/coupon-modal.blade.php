@@ -66,7 +66,7 @@ document.getElementById('couponForm').addEventListener('submit', async (e) => {
                 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
                 'Accept': 'application/json',
             },
-            body: JSON.stringify({ code, amount: 999 }),
+            body: JSON.stringify({ code, amount: 15 }),
         });
 
         const data = await response.json();

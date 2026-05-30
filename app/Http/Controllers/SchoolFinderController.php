@@ -32,6 +32,53 @@ class SchoolFinderController extends Controller
     }
 
     /**
+     * Public school search (no auth required) — used by the landing page widget.
+     * Returns up to 6 matching schools as JSON.
+     */
+    public function publicSearch(Request $request)
+    {
+        $cityName  = trim($request->get('city', ''));
+        $board     = trim($request->get('board', ''));
+        $type      = trim($request->get('type', ''));
+
+        $query = DynamicSchool::active()
+            ->with('city:id,name')
+            ->orderByDesc('rating');
+
+        if ($cityName !== '') {
+            $cityIds = City::where('name', 'like', "%{$cityName}%")->pluck('id');
+            $query->whereIn('city_id', $cityIds);
+        }
+
+        if ($board !== '') {
+            $query->where('board', 'like', "%{$board}%");
+        }
+
+        if ($type !== '') {
+            $query->where('type', $type);
+        }
+
+        $schools = $query->limit(6)->get([
+            'id', 'name', 'board', 'type', 'address', 'city_id', 'rating', 'rating_count', 'is_verified',
+        ]);
+
+        return response()->json([
+            'schools' => $schools->map(function ($s) {
+                return [
+                    'name'       => $s->name,
+                    'board'      => $s->board ?? 'N/A',
+                    'type'       => ucfirst($s->type ?? 'Mainstream'),
+                    'city'       => optional($s->city)->name ?? '—',
+                    'rating'     => $s->rating,
+                    'verified'   => $s->is_verified,
+                    'address'    => $s->address,
+                ];
+            }),
+            'total'   => $query->count(),
+        ]);
+    }
+
+    /**
      * Show the school finder page
      */
     public function index()

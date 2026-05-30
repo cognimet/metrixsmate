@@ -16,12 +16,19 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Public school search (no auth required) — powers the landing page School Finder widget
+Route::get('/schools/public-search', [SchoolFinderController::class, 'publicSearch'])->name('schools.public-search');
+
 // Google OAuth
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('auth.google.callback');
 
 // Public certificate verification
 Route::get('/verify-certificate', [CertificateController::class, 'verify'])->name('certificates.verify');
+
+// Payment webhooks
+Route::post('/webhooks/razorpay', [PaymentController::class, 'handleRazorpayWebhook'])->name('webhooks.razorpay');
+Route::post('/webhooks/paypal', [PaymentController::class, 'handlePayPalWebhook'])->name('webhooks.paypal');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [QuizController::class, 'dashboard'])->name('dashboard');
@@ -39,7 +46,8 @@ Route::middleware(['auth'])->group(function () {
     // Payments
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
     Route::post('/payments/initiate', [PaymentController::class, 'initiate'])->name('payments.initiate');
-    Route::post('/payments/{payment}/verify', [PaymentController::class, 'verify'])->name('payments.verify');
+    Route::post('/payments/{payment}/razorpay/complete', [PaymentController::class, 'completeRazorpay'])->name('payments.razorpay.complete');
+    Route::post('/payments/{payment}/paypal/capture', [PaymentController::class, 'capturePayPal'])->name('payments.paypal.capture');
     Route::get('/payments/history', [PaymentController::class, 'history'])->name('payments.history');
 
     // Coupons
