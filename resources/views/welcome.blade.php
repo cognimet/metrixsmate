@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ __('app.brand') }} - {{ __('app.welcome_hero_title') }}</title>
+
+    @include('partials.analytics')
+
+    @include('partials.seo-meta', [
+        'seoTitle'       => __('app.seo_home_title'),
+        'seoDescription' => __('app.seo_home_description'),
+        'seoCanonical'   => url('/'),
+        'seoType'        => 'website',
+        'seoAlternates'  => true,
+    ])
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -118,6 +130,48 @@
             .orb { animation: none; }
         }
     </style>
+
+    {{-- ── Structured data (JSON-LD) ── --}}
+    @include('partials.schema')
+    @php
+        $webPageSchema = [
+            '@context'        => 'https://schema.org',
+            '@type'           => 'WebPage',
+            'name'            => __('app.seo_home_title'),
+            'description'     => __('app.seo_home_description'),
+            'url'             => url('/'),
+            'inLanguage'      => app()->getLocale(),
+            'isPartOf'        => ['@type' => 'WebSite', 'name' => __('app.brand'), 'url' => url('/')],
+            'primaryImageOfPage' => asset('favicon.ico'),
+        ];
+
+        $breadcrumbSchema = [
+            '@context'       => 'https://schema.org',
+            '@type'          => 'BreadcrumbList',
+            'itemListElement' => [[
+                '@type'    => 'ListItem',
+                'position' => 1,
+                'name'     => __('app.brand'),
+                'item'     => url('/'),
+            ]],
+        ];
+
+        $faqSchema = [
+            '@context'   => 'https://schema.org',
+            '@type'      => 'FAQPage',
+            'mainEntity' => collect([1, 2, 3])->map(fn ($i) => [
+                '@type'          => 'Question',
+                'name'           => __("app.welcome_faq_{$i}_q"),
+                'acceptedAnswer' => [
+                    '@type' => 'Answer',
+                    'text'  => __("app.welcome_faq_{$i}_a"),
+                ],
+            ])->all(),
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($webPageSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+    <script type="application/ld+json">{!! json_encode($breadcrumbSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+    <script type="application/ld+json">{!! json_encode($faqSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 </head>
 
 <body class="text-ink-900 antialiased">
@@ -130,7 +184,7 @@
         <div class="flex items-center justify-between px-4 sm:px-6 py-3.5">
             <a href="/" class="flex items-center gap-3">
                 <span class="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-ocean-500 to-ink-900 text-white shadow-glow">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" focusable="false" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                     <span class="orb pointer-events-none absolute -right-1.5 -top-1.5 h-3 w-3 rounded-full bg-sand-400"></span>
@@ -138,7 +192,7 @@
                 <span class="font-display text-base sm:text-lg font-semibold text-ink-950">{{ __('app.brand') }}</span>
             </a>
 
-            <nav class="hidden lg:flex items-center gap-7 text-sm font-semibold text-ink-700">
+            <nav aria-label="Primary" class="hidden lg:flex items-center gap-7 text-sm font-semibold text-ink-700">
                 <a href="#features" class="transition hover:text-ocean-600">{{ __('app.welcome_features_title') }}</a>
                 <a href="#how-it-works" class="transition hover:text-ocean-600">{{ __('app.welcome_how_title') }}</a>
                 <a href="#testimonials" class="transition hover:text-ocean-600">{{ __('app.welcome_testimonials_title') }}</a>
@@ -158,16 +212,18 @@
                 type="button"
                 @click="mobileOpen = !mobileOpen"
                 class="inline-flex lg:hidden h-10 w-10 items-center justify-center rounded-xl border border-ink-200 bg-white text-ink-700"
-                aria-label="Toggle menu"
+                aria-label="Toggle navigation menu"
+                aria-controls="mobile-menu"
+                :aria-expanded="mobileOpen"
             >
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" focusable="false" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path x-show="!mobileOpen" x-cloak stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                     <path x-show="mobileOpen" x-cloak stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
 
-        <div x-show="mobileOpen" x-transition.duration.220ms x-cloak class="border-t border-ink-100 px-4 pb-4 pt-3 lg:hidden">
+        <div id="mobile-menu" x-show="mobileOpen" x-transition.duration.220ms x-cloak class="border-t border-ink-100 px-4 pb-4 pt-3 lg:hidden">
             <div class="grid gap-2 text-sm font-semibold text-ink-700">
                 <a @click="mobileOpen = false" href="#features" class="rounded-lg px-3 py-2 hover:bg-ink-50">{{ __('app.welcome_features_title') }}</a>
                 <a @click="mobileOpen = false" href="#how-it-works" class="rounded-lg px-3 py-2 hover:bg-ink-50">{{ __('app.welcome_how_title') }}</a>
@@ -294,7 +350,7 @@
             <div class="mt-10 grid gap-6 lg:grid-cols-3">
                 <article class="group rounded-3xl border border-ink-100 bg-white p-6 sm:p-8 shadow-soft transition hover:-translate-y-1" data-reveal>
                     <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                        <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <svg aria-hidden="true" focusable="false" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </div>
                     <h3 class="mt-6 font-display text-xl font-semibold text-ink-950">{{ __('app.welcome_feature_ocean_title') }}</h3>
                     <p class="mt-3 text-ink-600 leading-relaxed">{{ __('app.welcome_feature_ocean_desc') }}</p>
@@ -309,7 +365,7 @@
 
                 <article class="group rounded-3xl border border-ink-100 bg-white p-6 sm:p-8 shadow-soft transition hover:-translate-y-1" data-reveal>
                     <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-ocean-100 text-ocean-700">
-                        <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        <svg aria-hidden="true" focusable="false" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     </div>
                     <h3 class="mt-6 font-display text-xl font-semibold text-ink-950">{{ __('app.welcome_feature_riasec_title') }}</h3>
                     <p class="mt-3 text-ink-600 leading-relaxed">{{ __('app.welcome_feature_riasec_desc') }}</p>
@@ -325,7 +381,7 @@
 
                 <article class="group rounded-3xl border border-ink-100 bg-white p-6 sm:p-8 shadow-soft transition hover:-translate-y-1" data-reveal>
                     <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-sand-100 text-sand-700">
-                        <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                        <svg aria-hidden="true" focusable="false" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                     </div>
                     <h3 class="mt-6 font-display text-xl font-semibold text-ink-950">{{ __('app.welcome_feature_cognitive_title') }}</h3>
                     <p class="mt-3 text-ink-600 leading-relaxed">{{ __('app.welcome_feature_cognitive_desc') }}</p>
@@ -392,7 +448,7 @@
             <div class="mt-10 grid gap-6 lg:grid-cols-3">
                 @foreach($testimonials as $t)
                     <figure class="rounded-3xl border border-ink-100 bg-ink-50/60 p-6 sm:p-8 shadow-soft" data-reveal>
-                        <svg class="h-8 w-8 text-ocean-300" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+                        <svg aria-hidden="true" focusable="false" class="h-8 w-8 text-ocean-300" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
                         <blockquote class="mt-4 text-ink-700 leading-relaxed">{{ $t['text'] }}</blockquote>
                         <figcaption class="mt-5 font-semibold text-ink-950">{{ $t['author'] }}</figcaption>
                     </figure>
@@ -424,14 +480,16 @@
                     <article class="overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-soft">
                         <button
                             type="button"
+                            id="faq-trigger-{{ $i }}"
                             class="flex w-full items-center justify-between gap-4 px-5 sm:px-6 py-4 text-left"
                             @click="open === {{ $i }} ? open = -1 : open = {{ $i }}"
                             :aria-expanded="open === {{ $i }}"
+                            aria-controls="faq-panel-{{ $i }}"
                         >
                             <span class="text-sm sm:text-base font-semibold text-ink-900">{{ $faq['q'] }}</span>
-                            <svg class="h-5 w-5 transition-transform" :class="open === {{ $i }} ? 'rotate-180 text-ocean-600' : 'text-ink-400'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                            <svg aria-hidden="true" focusable="false" class="h-5 w-5 transition-transform" :class="open === {{ $i }} ? 'rotate-180 text-ocean-600' : 'text-ink-400'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                         </button>
-                        <div x-show="open === {{ $i }}" x-transition.duration.220ms x-cloak>
+                        <div id="faq-panel-{{ $i }}" role="region" aria-labelledby="faq-trigger-{{ $i }}" x-show="open === {{ $i }}" x-transition.duration.220ms x-cloak>
                             <div class="px-5 sm:px-6 pb-5 text-sm sm:text-base leading-relaxed text-ink-600">{{ $faq['a'] }}</div>
                         </div>
                     </article>

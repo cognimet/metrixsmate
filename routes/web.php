@@ -11,10 +11,16 @@ use App\Http\Controllers\CouponController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\SeoController;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+// SEO / crawler discovery (dynamic)
+Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
+Route::get('/llms.txt', [SeoController::class, 'llms'])->name('llms');
 
 // Public school search (no auth required) — powers the landing page School Finder widget
 Route::get('/schools/public-search', [SchoolFinderController::class, 'publicSearch'])->name('schools.public-search');

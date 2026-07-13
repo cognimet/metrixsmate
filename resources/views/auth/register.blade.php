@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', __('app.auth_register') . ' — ' . __('app.brand'))
+@section('meta_description', __('app.seo_register_description'))
 
 @section('content')
 {{-- ═══ Hero Banner — mirrors welcome page ═══ --}}

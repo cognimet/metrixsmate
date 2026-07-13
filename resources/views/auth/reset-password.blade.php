@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', __('app.auth_reset_title') . ' — ' . __('app.brand'))
+@section('meta_robots', 'noindex, follow')
 @section('isLoginPage', true)
 
 @section('content')

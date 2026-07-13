@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{{ $title ?? config('app.name') }}</title>
+  @include('partials.analytics')
+  <meta name="robots" content="noindex, follow" />
+  <title>{{ $title ?? __('app.brand') }}</title>
+  <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any" />
   @vite(['resources/css/app.css','resources/js/app.js'])
   <style>
     .glass {

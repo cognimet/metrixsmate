@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', __('app.auth_confirm_title') . ' — ' . __('app.brand'))
+@section('meta_robots', 'noindex, follow')
 
 @section('content')
 <section class="relative py-12 sm:py-20 overflow-hidden hero-pattern flex-1 flex items-center">

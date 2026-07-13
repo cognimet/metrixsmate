@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', __('app.auth_login') . ' — ' . __('app.brand'))
+@section('meta_description', __('app.seo_login_description'))
 @section('isLoginPage', true)
 
 @section('content')

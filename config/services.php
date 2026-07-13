@@ -74,4 +74,8 @@ return [
         'base_url' => 'https://generativelanguage.googleapis.com/v1beta/models',
     ],
 
+    'google_analytics' => [
+        'id' => env('GOOGLE_ANALYTICS_ID', 'G-V6HEN6P73B'),
+    ],
+
 ];

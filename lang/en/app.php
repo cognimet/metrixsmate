@@ -336,4 +336,12 @@ return [
     'save'                       => 'Save',
     'confirm'                    => 'Confirm',
     'or'                         => 'or',
+
+    // ── SEO / meta ──────────────────────────────────────────────
+    'seo_default_description' => 'MetrixsMate offers scientifically designed psychometric assessments — OCEAN personality, RIASEC career interests, and cognitive ability — with personalized school and career recommendations.',
+    'seo_org_description'     => 'MetrixsMate is a psychometric assessment platform that helps students and professionals understand their personality, career interests, and cognitive strengths, then turns those insights into actionable education and career guidance.',
+    'seo_home_title'          => 'MetrixsMate — Psychometric Assessments for Career & Education Guidance',
+    'seo_home_description'    => 'Discover your personality, career interests, and cognitive strengths with MetrixsMate\'s scientific OCEAN, RIASEC, and cognitive assessments. Get personalized school and career recommendations you can act on.',
+    'seo_login_description'   => 'Log in to MetrixsMate to view your assessment results, reports, certificates, and personalized recommendations.',
+    'seo_register_description'=> 'Create a free MetrixsMate account to take psychometric assessments and receive personalized education and career recommendations.',
 ];

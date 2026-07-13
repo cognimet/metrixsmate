@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', __('app.brand'))</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    @include('partials.analytics')
+
+    @include('partials.seo-meta', [
+        'seoTitle'       => trim($__env->yieldContent('title')) ?: __('app.brand'),
+        'seoDescription' => trim($__env->yieldContent('meta_description')) ?: __('app.seo_default_description'),
+        'seoRobots'      => trim($__env->yieldContent('meta_robots')) ?: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    ])
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
     tailwind.config = {
