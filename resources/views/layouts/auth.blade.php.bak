@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', 'Psychometric Portal')</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brandBlue: '#1E3A8A',   // Deep, reliable blue
+                        brandSky: '#3B82F6',    // Lighter blue accent
+                        brandGray: '#F9FAFB',   // Neutral background
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-brandGray">
+    <div class="w-full max-w-md mx-auto px-4">
+        @yield('content')
+    </div>
+</body>
+</html>

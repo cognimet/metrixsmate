@@ -1,0 +1,176 @@
+@extends('layouts.app')
+
+@section('title', $quiz->title . ' Assessment')
+
+@section('content')
+<div class="min-h-screen bg-brandGray py-10 px-4">
+    <div class="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl p-8">
+        <!-- Global Validation Errors -->
+        @if ($errors->any())
+            <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h2 class="font-semibold text-red-700 mb-2">⚠️ Please fix the following issues:</h2>
+                <ul class="list-disc pl-5 text-red-600 text-sm space-y-1">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+        <!-- Page Title -->
+        <h1 class="text-2xl font-bold text-center text-brandBlue mb-2">
+            {{ $quiz->title }} Assessment
+        </h1>
+        <p class="text-center text-gray-600 mb-6">
+            {{ $quiz->description ?? 'Please complete all questions carefully.' }}
+        </p>
+
+        <!-- Instructions -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+            <h2 class="font-semibold text-brandBlue mb-2">Instructions</h2>
+            <p class="text-gray-700 text-sm leading-relaxed">
+                @if (strtolower($quiz->title) === 'ocean' || strtolower($quiz->title) === 'riasec')
+                    For each statement, select the option that best reflects your level of agreement.
+                @elseif (strtolower($quiz->type) === 'cognitive')
+                    For each question, select the most appropriate answer from the given options.
+                @else
+                    Please answer all questions to the best of your ability.
+                @endif
+            </p>
+        </div>
+
+        <form id="quizForm" action="{{ route('assessments.submitAll', $quiz->id) }}" method="POST" novalidate>
+            @csrf
+
+            @php
+                $likert = [
+                    1 => 'Strongly Disagree',
+                    2 => 'Disagree',
+                    3 => 'Neutral',
+                    4 => 'Agree',
+                    5 => 'Strongly Agree',
+                ];
+            @endphp
+
+            <div class="space-y-10">
+                @foreach ($questions as $index => $question)
+                    <div class="pb-6 border-b last:border-0 question-block" data-question="{{ $question->id }}">
+                        <!-- Question -->
+                        <p class="mb-4 text-lg font-medium text-gray-900">
+                            Q {{ $index + 1 }}. {{ $question->title }}
+                        </p>
+
+                        {{-- OCEAN & RIASEC → Likert scale --}}
+                        @if (strtolower($quiz->title) === 'ocean' || strtolower($quiz->title) === 'riasec')
+                            <div class="grid grid-cols-5 gap-4 text-center">
+                                @foreach ($likert as $value => $label)
+                                    <label class="flex flex-col items-center cursor-pointer group">
+                                        <input type="radio"
+                                               name="answers[{{ $question->id }}]"
+                                               value="{{ $value }}"
+                                               class="hidden peer"
+                                               required>
+                                        {{-- Show error for this question --}}
+                                        @error('answers.' . $question->id)
+                                             <div class="text-red-500">{{ $message }}</div>
+                                        @enderror
+                                        <div class="w-12 h-12 flex items-center justify-center rounded-full border-2 border-gray-300 
+                                                    peer-checked:bg-brandBlue peer-checked:border-brandBlue
+                                                    group-hover:border-brandSky transition-colors">
+                                            <span class="text-gray-600 peer-checked:text-white font-semibold">
+                                                {{ $value }}
+                                            </span>
+                                        </div>
+                                        <span class="mt-2 text-xs text-gray-700 group-hover:text-brandBlue">
+                                            {{ $label }}
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+
+                        {{-- Cognitive → Multiple Choice --}}
+                        @elseif (strtolower($quiz->title) === 'cognitive') 
+                            @php
+                                $decodedOptions = $question->options ?? [];
+                            @endphp
+
+                            <div class="space-y-3">
+                                @foreach ($decodedOptions as $label => $value)
+                                    <label for="q{{ $question->id }}_{{ \Illuminate\Support\Str::slug($label, '_') }}"
+                                        class="flex items-center p-4 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer 
+                                                hover:bg-blue-50 hover:border-brandSky transition">
+                                        <input type="radio"
+                                            name="answers[{{ $question->id }}]"
+                                            id="q{{ $question->id }}_{{ \Illuminate\Support\Str::slug($label, '_') }}"
+                                            value="{{ $value }}"
+                                            class="w-5 h-5 text-brandBlue focus:ring-brandSky cursor-pointer"
+                                            required>
+                                        <span class="ml-3 text-gray-800">
+                                            {{ $label }}
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endif
+
+
+                        <!-- Inline Error -->
+                        <p class="error-message text-sm text-red-600 mt-2 hidden">⚠️ Please select an answer for this question.</p>
+                    </div>
+                @endforeach
+            </div>
+
+            <!-- Submit Button -->
+            <div class="mt-12 text-center">
+                <button type="submit" 
+                        class="px-10 py-3 bg-brandBlue text-white font-semibold rounded-xl shadow-md 
+                               hover:bg-brandSky transition-colors">
+                    Submit Assessment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Frontend Validation -->
+<script>
+    document.getElementById("quizForm").addEventListener("submit", function(e) {
+        let valid = true;
+        let firstErrorBlock = null;
+    
+        document.querySelectorAll(".question-block").forEach(block => {
+            const radios = block.querySelectorAll("input[type='radio']");
+            const checked = Array.from(radios).some(r => r.checked);
+            const error = block.querySelector(".error-message");
+    
+            if (!checked) {
+                error.classList.remove("hidden");
+                if (!firstErrorBlock) {
+                    firstErrorBlock = block;
+                }
+                valid = false;
+            } else {
+                error.classList.add("hidden");
+            }
+        });
+    
+        if (!valid) {
+            e.preventDefault();
+    
+            // Scroll smoothly to the first error question
+            firstErrorBlock.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    });
+    
+    // Auto-hide error when user selects an answer
+    document.querySelectorAll("input[type='radio']").forEach(radio => {
+        radio.addEventListener("change", function() {
+            const block = this.closest(".question-block");
+            block.querySelector(".error-message").classList.add("hidden");
+        });
+    });
+</script>
+    
+@endsection
